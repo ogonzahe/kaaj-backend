@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: kaaj-mariadb
+    environment:
+      - MARIADB_ROOT_PASSWORD=rootpwd
+      - MARIADB_DATABASE=kaaj_core
+      - MARIADB_USER=kaaj
+      - MARIADB_PASSWORD=kaajpwd
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
