@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api")
@@ -35,7 +36,12 @@ public class UsuarioController {
         }
 
         Saldo saldo = saldoRepo.findTopByUsuarioOrderByActualizadoEnDesc(usuario);
-        List<Notificacion> notificaciones = notiRepo.findByUsuarioAndLeidaFalse(usuario);
+
+        List<Notificacion> notificaciones = notiRepo.findAll()
+                .stream()
+                .filter(n -> n.getLeida() != null && !n.getLeida())
+                .toList();
+
         Reserva reserva = reservaRepo.findTopByUsuarioOrderByFechaReservaAsc(usuario);
 
         PanelResponse response = new PanelResponse(

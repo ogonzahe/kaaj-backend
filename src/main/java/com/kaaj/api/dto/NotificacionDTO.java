@@ -1,30 +1,30 @@
-package com.kaaj.api.model;
+package com.kaaj.api.dto;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "notificaciones")
-public class Notificacion {
+public class NotificacionDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
     private String titulo;
     private String descripcion;
-
-    @Column(length = 50)
     private String prioridad;
+    private Boolean leida;
+    private LocalDateTime creadaEn;
+    private Integer usuarioId;
 
-    private Boolean leida = false;
+    public NotificacionDTO() {
+    }
 
-    @Column(name = "creada_en")
-    private LocalDateTime creadaEn = LocalDateTime.now();
-
-    @ManyToOne
-    @JoinColumn(name = "usuario_id")
-    private Usuario usuario;
+    public NotificacionDTO(Integer id, String titulo, String descripcion, String prioridad,
+            Boolean leida, LocalDateTime creadaEn, Integer usuarioId) {
+        this.id = id;
+        this.titulo = titulo;
+        this.descripcion = descripcion;
+        this.prioridad = prioridad;
+        this.leida = leida;
+        this.creadaEn = creadaEn;
+        this.usuarioId = usuarioId;
+    }
 
     public Integer getId() {
         return id;
@@ -74,11 +74,11 @@ public class Notificacion {
         this.creadaEn = creadaEn;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
+    public Integer getUsuarioId() {
+        return usuarioId;
     }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    public void setUsuarioId(Integer usuarioId) {
+        this.usuarioId = usuarioId;
     }
 }

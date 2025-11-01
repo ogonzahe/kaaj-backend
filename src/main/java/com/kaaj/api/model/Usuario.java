@@ -1,5 +1,7 @@
 package com.kaaj.api.model;
 
+import jakarta.persistence.*;
+import java.util.List;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
@@ -21,8 +23,24 @@ public class Usuario {
     @Column(nullable = false)
     private String contrasena;
 
-    // Getters y setters
+    // 🔹 Relación UNO a MUCHAS con Notificaciones
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notificacion> notificaciones;
 
+    // =====================
+    // CONSTRUCTORES
+    // =====================
+    public Usuario() {
+    }
+
+    public Usuario(String correo, String contrasena) {
+        this.correo = correo;
+        this.contrasena = contrasena;
+    }
+
+    // =====================
+    // GETTERS Y SETTERS
+    // =====================
     public Integer getId() {
         return id;
     }
@@ -45,5 +63,13 @@ public class Usuario {
 
     public void setContrasena(String contrasena) {
         this.contrasena = contrasena;
+    }
+
+    public List<Notificacion> getNotificaciones() {
+        return notificaciones;
+    }
+
+    public void setNotificaciones(List<Notificacion> notificaciones) {
+        this.notificaciones = notificaciones;
     }
 }
