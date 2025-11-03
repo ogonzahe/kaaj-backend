@@ -16,56 +16,33 @@ public class Notificacion {
 
     private String titulo;
     private String descripcion;
+    private String prioridad;
+
+    @Column(name = "leida")
     private Boolean leida;
+
+    @Column(name = "creada_en")
     private Timestamp creadaEn;
 
     // Getters y setters
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-    public Integer getId() {
-        return id;
-    }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    public Usuario getUsuario() {
-        return usuario;
-    }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
+    public String getPrioridad() { return prioridad; }
+    public void setPrioridad(String prioridad) { this.prioridad = prioridad; }
 
-    public String getTitulo() {
-        return titulo;
-    }
+    public Boolean getLeida() { return leida; }
+    public void setLeida(Boolean leida) { this.leida = leida; }
 
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public Boolean getLeida() {
-        return leida;
-    }
-
-    public void setLeida(Boolean leida) {
-        this.leida = leida;
-    }
-
-    public Timestamp getCreadaEn() {
-        return creadaEn;
-    }
-
-    public void setCreadaEn(Timestamp creadaEn) {
-        this.creadaEn = creadaEn;
-    }
+    public Timestamp getCreadaEn() { return creadaEn; }
+    public void setCreadaEn(Timestamp creadaEn) { this.creadaEn = creadaEn; }
 }
