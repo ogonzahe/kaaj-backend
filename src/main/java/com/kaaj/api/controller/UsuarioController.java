@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/api")
 public class UsuarioController {
@@ -82,7 +82,8 @@ public class UsuarioController {
             select.setParameter("id", id);
 
             Object[] currentState = (Object[]) select.getSingleResult();
-            System.out.println("Estado actual - ID: " + currentState[0] + ", Título: " + currentState[1] + ", Leída: " + currentState[2]);
+            System.out.println("Estado actual - ID: " + currentState[0] + ", Título: " + currentState[1] + ", Leída: "
+                    + currentState[2]);
 
             // Actualizar a leída
             String updateQuery = "UPDATE notificaciones SET leida = 1 WHERE id = :id";
@@ -94,7 +95,8 @@ public class UsuarioController {
 
             // Verificar estado después de la actualización
             Object[] newState = (Object[]) select.getSingleResult();
-            System.out.println("Estado nuevo - ID: " + newState[0] + ", Título: " + newState[1] + ", Leída: " + newState[2]);
+            System.out.println(
+                    "Estado nuevo - ID: " + newState[0] + ", Título: " + newState[1] + ", Leída: " + newState[2]);
 
             if (updated > 0) {
                 return ResponseEntity.ok("Notificación marcada como leída");
@@ -144,7 +146,8 @@ public class UsuarioController {
             Notificacion notificacion = notiRepo.findById(id).orElse(null);
 
             if (notificacion != null) {
-                System.out.println("Encontrada: " + notificacion.getTitulo() + ", Leída actual: " + notificacion.getLeida());
+                System.out.println(
+                        "Encontrada: " + notificacion.getTitulo() + ", Leída actual: " + notificacion.getLeida());
                 notificacion.setLeida(true);
                 Notificacion saved = notiRepo.save(notificacion);
                 System.out.println("Guardada: " + saved.getTitulo() + ", Leída nueva: " + saved.getLeida());
