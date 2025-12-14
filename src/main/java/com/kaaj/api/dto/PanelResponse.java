@@ -12,21 +12,30 @@ public class PanelResponse {
     private String amenidad;
     private LocalDate fechaReserva;
     private LocalTime horaReserva;
+    private String rol;
 
-    public PanelResponse(BigDecimal saldo, LocalDate fechaLimite, List<String> notificaciones,
-            String amenidad, LocalDate fechaReserva, LocalTime horaReserva) {
+    // Constructor CORREGIDO - 7 parámetros
+    public PanelResponse(BigDecimal saldo,
+                        LocalDate fechaLimite,
+                        List<String> notificaciones,
+                        String amenidad,
+                        LocalDate fechaReserva,
+                        LocalTime horaReserva,
+                        String rol) {
         this.saldo = saldo;
         this.fechaLimite = fechaLimite;
         this.notificaciones = notificaciones;
         this.amenidad = amenidad;
         this.fechaReserva = fechaReserva;
         this.horaReserva = horaReserva;
+        this.rol = rol;
     }
 
-    public PanelResponse(BigDecimal bigDecimal, LocalDate localDate, Object object, Object object2, Object object3) {
-
+    // Constructor vacío para JSON
+    public PanelResponse() {
     }
 
+    // Getters y Setters
     public BigDecimal getSaldo() {
         return saldo;
     }
@@ -73,5 +82,13 @@ public class PanelResponse {
 
     public void setHoraReserva(LocalTime horaReserva) {
         this.horaReserva = horaReserva;
+    }
+
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
     }
 }

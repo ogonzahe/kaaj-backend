@@ -48,13 +48,36 @@ public class UsuarioController {
         List<Notificacion> notificaciones = notiRepo.findByUsuarioAndLeidaFalse(usuario);
         Reserva reserva = reservaRepo.findTopByUsuarioOrderByFechaReservaAsc(usuario);
 
-        PanelResponse response = new PanelResponse(
-                saldo != null ? saldo.getMonto() : null,
-                saldo != null ? saldo.getFechaLimite() : null,
-                notificaciones.stream().map(Notificacion::getTitulo).toList(),
-                reserva != null ? reserva.getAmenidad() : null,
-                reserva != null ? reserva.getFechaReserva() : null,
-                reserva != null ? reserva.getHoraReserva() : null);
+        String rolUsuario = usuario.getRolNombre();
+
+        if (rolUsuario == null || rolUsuario.isEmpty()) {
+            if (usuario.getRolId() != null) {
+                switch (usuario.getRolId()) {
+                    case 1:
+                        rolUsuario = "admin_usuario";
+                        break;
+                    case 2:
+                        rolUsuario = "USUARIO";
+                        break;
+                    case 3:
+                        rolUsuario = "SEGURIDAD";
+                        break;
+                    default:
+                        rolUsuario = "USUARIO";
+                }
+            } else {
+                rolUsuario = "USUARIO";
+            }
+        }
+
+PanelResponse response = new PanelResponse(
+        saldo != null ? saldo.getMonto() : null,
+        saldo != null ? saldo.getFechaLimite() : null,
+        notificaciones.stream().map(Notificacion::getTitulo).toList(),
+        reserva != null ? reserva.getAmenidad() : null,
+        reserva != null ? reserva.getFechaReserva() : null,
+        reserva != null ? reserva.getHoraReserva() : null,
+        rolUsuario);
 
         return ResponseEntity.ok(response);
     }
@@ -76,7 +99,6 @@ public class UsuarioController {
         try {
             System.out.println("=== INTENTANDO MARCAR NOTIFICACIÓN " + id + " COMO LEÍDA ===");
 
-            // Verificar estado actual
             String selectQuery = "SELECT id, titulo, leida FROM notificaciones WHERE id = :id";
             Query select = entityManager.createNativeQuery(selectQuery);
             select.setParameter("id", id);
@@ -85,7 +107,6 @@ public class UsuarioController {
             System.out.println("Estado actual - ID: " + currentState[0] + ", Título: " + currentState[1] + ", Leída: "
                     + currentState[2]);
 
-            // Actualizar a leída
             String updateQuery = "UPDATE notificaciones SET leida = 1 WHERE id = :id";
             Query update = entityManager.createNativeQuery(updateQuery);
             update.setParameter("id", id);
@@ -93,7 +114,6 @@ public class UsuarioController {
 
             System.out.println("Filas actualizadas: " + updated);
 
-            // Verificar estado después de la actualización
             Object[] newState = (Object[]) select.getSingleResult();
             System.out.println(
                     "Estado nuevo - ID: " + newState[0] + ", Título: " + newState[1] + ", Leída: " + newState[2]);
@@ -136,7 +156,6 @@ public class UsuarioController {
         }
     }
 
-    // Endpoint adicional para probar con JPA
     @PutMapping("/notificaciones/{id}/leer-jpa")
     @Transactional
     public ResponseEntity<?> marcarComoLeidaJPA(@PathVariable Integer id) {
