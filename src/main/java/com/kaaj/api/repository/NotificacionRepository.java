@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface NotificacionRepository extends JpaRepository<Notificacion, Integer> {
     List<Notificacion> findByUsuarioAndLeidaFalse(Usuario usuario);
+
+    List<Notificacion> findAllByOrderByCreadaEnDesc();
 }
