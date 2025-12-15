@@ -1,5 +1,6 @@
 package com.kaaj.api.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.sql.Timestamp;
 
@@ -24,25 +25,76 @@ public class Notificacion {
     @Column(name = "creada_en")
     private Timestamp creadaEn;
 
+    @PrePersist
+    public void prePersist() {
+        if (leida == null)
+            leida = false;
+        if (creadaEn == null)
+            creadaEn = new Timestamp(System.currentTimeMillis());
+        if (prioridad == null || prioridad.isBlank())
+            prioridad = "INFORMATIVO";
+    }
+
+    @Transient
+    @JsonProperty("fecha_creacion")
+    public Timestamp getFechaCreacion() {
+        return creadaEn;
+    }
+
     // Getters y setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public Integer getId() {
+        return id;
+    }
 
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
+    public Usuario getUsuario() {
+        return usuario;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
 
-    public String getPrioridad() { return prioridad; }
-    public void setPrioridad(String prioridad) { this.prioridad = prioridad; }
+    public String getTitulo() {
+        return titulo;
+    }
 
-    public Boolean getLeida() { return leida; }
-    public void setLeida(Boolean leida) { this.leida = leida; }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
 
-    public Timestamp getCreadaEn() { return creadaEn; }
-    public void setCreadaEn(Timestamp creadaEn) { this.creadaEn = creadaEn; }
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public String getPrioridad() {
+        return prioridad;
+    }
+
+    public void setPrioridad(String prioridad) {
+        this.prioridad = prioridad;
+    }
+
+    public Boolean getLeida() {
+        return leida;
+    }
+
+    public void setLeida(Boolean leida) {
+        this.leida = leida;
+    }
+
+    public Timestamp getCreadaEn() {
+        return creadaEn;
+    }
+
+    public void setCreadaEn(Timestamp creadaEn) {
+        this.creadaEn = creadaEn;
+    }
 }

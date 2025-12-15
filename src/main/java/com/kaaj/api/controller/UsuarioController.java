@@ -70,14 +70,14 @@ public class UsuarioController {
             }
         }
 
-PanelResponse response = new PanelResponse(
-        saldo != null ? saldo.getMonto() : null,
-        saldo != null ? saldo.getFechaLimite() : null,
-        notificaciones.stream().map(Notificacion::getTitulo).toList(),
-        reserva != null ? reserva.getAmenidad() : null,
-        reserva != null ? reserva.getFechaReserva() : null,
-        reserva != null ? reserva.getHoraReserva() : null,
-        rolUsuario);
+        PanelResponse response = new PanelResponse(
+                saldo != null ? saldo.getMonto() : null,
+                saldo != null ? saldo.getFechaLimite() : null,
+                notificaciones.stream().map(Notificacion::getTitulo).toList(),
+                reserva != null ? reserva.getAmenidad() : null,
+                reserva != null ? reserva.getFechaReserva() : null,
+                reserva != null ? reserva.getHoraReserva() : null,
+                rolUsuario);
 
         return ResponseEntity.ok(response);
     }
@@ -180,6 +180,62 @@ PanelResponse response = new PanelResponse(
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al marcar como leída: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/notificaciones")
+    public ResponseEntity<?> crearNotificacion(@RequestBody Map<String, Object> body) {
+        try {
+            Notificacion n = new Notificacion();
+
+            n.setTitulo((String) body.get("titulo"));
+            n.setDescripcion((String) body.get("mensaje"));
+            n.setPrioridad((String) body.get("prioridad"));
+
+            // Para admin (broadcast): usuario_id = null
+            n.setUsuario(null);
+
+            Notificacion saved = notiRepo.save(n);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creando notificación: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/notificaciones/{id}")
+    public ResponseEntity<?> editarNotificacion(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            Notificacion n = notiRepo.findById(id).orElse(null);
+            if (n == null)
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Notificación no encontrada");
+
+            if (body.get("titulo") != null)
+                n.setTitulo((String) body.get("titulo"));
+            if (body.get("mensaje") != null)
+                n.setDescripcion((String) body.get("mensaje")); // <- tu front usa "mensaje"
+            if (body.get("prioridad") != null)
+                n.setPrioridad((String) body.get("prioridad"));
+
+            Notificacion saved = notiRepo.save(n);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error editando notificación: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/notificaciones/{id}")
+    public ResponseEntity<?> eliminarNotificacion(@PathVariable Integer id) {
+        try {
+            if (!notiRepo.existsById(id)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Notificación no encontrada");
+            }
+            notiRepo.deleteById(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error eliminando notificación: " + e.getMessage());
         }
     }
 }
