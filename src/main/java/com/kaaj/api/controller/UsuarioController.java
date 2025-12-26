@@ -62,6 +62,9 @@ public class UsuarioController {
                     case 3:
                         rolUsuario = "SEGURIDAD";
                         break;
+                    case 4: // ← AÑADE ESTE CASO PARA COPO
+                        rolUsuario = "COPO";
+                        break;
                     default:
                         rolUsuario = "USUARIO";
                 }
@@ -69,7 +72,6 @@ public class UsuarioController {
                 rolUsuario = "USUARIO";
             }
         }
-
         PanelResponse response = new PanelResponse(
                 saldo != null ? saldo.getMonto() : null,
                 saldo != null ? saldo.getFechaLimite() : null,
