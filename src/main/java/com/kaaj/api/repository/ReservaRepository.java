@@ -3,8 +3,10 @@ package com.kaaj.api.repository;
 import com.kaaj.api.model.Reserva;
 import com.kaaj.api.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -30,4 +32,24 @@ public interface ReservaRepository extends JpaRepository<Reserva, Integer> {
             @Param("mes") Integer mes,
             @Param("anio") Integer anio,
             @Param("horaInicio") LocalTime horaInicio);
+
+    // ========== MÉTODO NUEVO AGREGADO (PARA ELIMINACIÓN DE USUARIOS) ==========
+    @Query("SELECT r FROM Reserva r WHERE r.usuario.id = :usuarioId")
+    List<Reserva> findByUsuarioId(@Param("usuarioId") Integer usuarioId);
+
+    // ========== MÉTODO NUEVO CRÍTICO PARA ELIMINACIÓN DE USUARIOS ==========
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Reserva r WHERE r.usuario.id = :usuarioId")
+    void deleteByUsuarioId(@Param("usuarioId") Integer usuarioId);
+    // =======================================================================
+
+    // ========== MÉTODO EXISTENTE (PARA PANEL DATA) ==========
+    @Query("SELECT r FROM Reserva r WHERE r.usuario.id = :usuarioId AND " +
+           "(r.anio > :year OR (r.anio = :year AND r.mes > :month) OR " +
+           "(r.anio = :year AND r.mes = :month AND r.dia >= :day))")
+    List<Reserva> findByUsuarioIdAndFechaGreaterThanEqual(@Param("usuarioId") Integer usuarioId,
+                                                          @Param("year") int year,
+                                                          @Param("month") int month,
+                                                          @Param("day") int day);
 }

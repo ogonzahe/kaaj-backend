@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import com.stripe.Stripe;
 
-import jakarta.annotation.PostConstruct; // ¡Import de Jakarta!
+import jakarta.annotation.PostConstruct; // ??Import de Jakarta!
 
 @Configuration
 public class StripeConfig {

@@ -27,7 +27,7 @@ public class ReservaController {
     @Autowired
     private UsuarioRepository usuarioRepo;
 
-    // Obtener reservas por mes y año
+    // Obtener reservas por mes y a??o
     @GetMapping
     public ResponseEntity<?> getReservasPorMes(
             @RequestParam Integer month,
@@ -61,7 +61,7 @@ public class ReservaController {
             String hora = (String) reservaData.get("hora");
             Integer usuarioId = (Integer) reservaData.get("usuario_id");
 
-            // Validaciones básicas
+            // Validaciones b??sicas
             if (amenidadNombre == null || dia == null || mes == null || anio == null || hora == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Faltan datos requeridos para la reserva");
@@ -78,11 +78,11 @@ public class ReservaController {
                     horaInicio = LocalTime.parse(hora);
                 } else {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body("Formato de hora inválido: " + hora);
+                            .body("Formato de hora inv??lido: " + hora);
                 }
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Formato de hora inválido: " + hora);
+                        .body("Formato de hora inv??lido: " + hora);
             }
 
             // Validar que el usuario existe
@@ -91,19 +91,19 @@ public class ReservaController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuario no encontrado");
             }
 
-            // Validar que el usuario no tenga otra reserva el mismo día
+            // Validar que el usuario no tenga otra reserva el mismo d??a
             Reserva reservaExistente = reservaRepo.findByUsuarioAndDiaAndMesAndAnio(usuario, dia, mes, anio);
             if (reservaExistente != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Ya tienes una reserva para este día");
+                        .body("Ya tienes una reserva para este d??a");
             }
 
-            // Validar que la amenidad no esté reservada en ese horario
+            // Validar que la amenidad no est?? reservada en ese horario
             Reserva conflictoAmenidad = reservaRepo.findByAmenidadAndDiaAndMesAndAnioAndHoraInicio(
                     amenidadNombre, dia, mes, anio, horaInicio);
             if (conflictoAmenidad != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("La amenidad ya está reservada en este horario");
+                        .body("La amenidad ya est?? reservada en este horario");
             }
 
             // Crear la reserva

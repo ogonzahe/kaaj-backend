@@ -3,6 +3,7 @@ package com.kaaj.api.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.sql.Timestamp;
 
 @Entity
@@ -15,6 +16,11 @@ public class Saldo {
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
+
+    // NUEVA RELACIÓN CON CONDOMINIO
+    @ManyToOne
+    @JoinColumn(name = "condominio_id")
+    private Condominio condominio;
 
     private BigDecimal monto;
     private String concepto;
@@ -49,6 +55,21 @@ public class Saldo {
     @Column(name = "referencia_factura")
     private String referenciaFactura;
 
+    // NUEVOS CAMPOS PARA PAGOS RECURRENTES
+    private String categoria;
+
+    @Column(name = "es_recurrente")
+    private Boolean esRecurrente = false;
+
+    @Column(name = "numero_repeticion")
+    private Integer numeroRepeticion;
+
+    @Column(name = "pago_programado_id")
+    private Integer pagoProgramadoId;
+
+    @Column(name = "fecha_pago_completado")
+    private LocalDateTime fechaPagoCompletado;
+
     // Getters y Setters
     public Integer getId() {
         return id;
@@ -64,6 +85,15 @@ public class Saldo {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
+    }
+
+    // NUEVO GETTER/SETTER para condominio
+    public Condominio getCondominio() {
+        return condominio;
+    }
+
+    public void setCondominio(Condominio condominio) {
+        this.condominio = condominio;
     }
 
     public BigDecimal getMonto() {
@@ -168,5 +198,45 @@ public class Saldo {
 
     public void setReferenciaFactura(String referenciaFactura) {
         this.referenciaFactura = referenciaFactura;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public Boolean isEsRecurrente() {
+        return esRecurrente;
+    }
+
+    public void setEsRecurrente(Boolean esRecurrente) {
+        this.esRecurrente = esRecurrente;
+    }
+
+    public Integer getNumeroRepeticion() {
+        return numeroRepeticion;
+    }
+
+    public void setNumeroRepeticion(Integer numeroRepeticion) {
+        this.numeroRepeticion = numeroRepeticion;
+    }
+
+    public Integer getPagoProgramadoId() {
+        return pagoProgramadoId;
+    }
+
+    public void setPagoProgramadoId(Integer pagoProgramadoId) {
+        this.pagoProgramadoId = pagoProgramadoId;
+    }
+
+    public LocalDateTime getFechaPagoCompletado() {
+        return fechaPagoCompletado;
+    }
+
+    public void setFechaPagoCompletado(LocalDateTime fechaPagoCompletado) {
+        this.fechaPagoCompletado = fechaPagoCompletado;
     }
 }

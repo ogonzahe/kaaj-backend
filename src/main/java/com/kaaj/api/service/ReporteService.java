@@ -2,34 +2,64 @@ package com.kaaj.api.service;
 
 import com.kaaj.api.dto.CrearReporteDTO;
 import com.kaaj.api.model.Reporte;
+import com.kaaj.api.model.Usuario;
+import com.kaaj.api.model.Condominio;
+import com.kaaj.api.repository.ReporteRepository;
+import com.kaaj.api.repository.UsuarioRepository;
+import com.kaaj.api.repository.CondominioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
 
 @Service
 public class ReporteService {
 
-    private final Map<Integer, List<Reporte>> store = new HashMap<>();
-    private final AtomicLong seq = new AtomicLong(1);
+    @Autowired
+    private ReporteRepository reporteRepository;
 
-    public Reporte crearReporte(Integer usuarioId, CrearReporteDTO dto) {
-        Reporte r = new Reporte();
-        r.setId(seq.getAndIncrement()); // Lombok @Data te da setId
-        r.setTitulo(dto.getTitulo());
-        r.setDescripcion(dto.getDescripcion());
-        r.setUbicacion(dto.getUbicacion());
-        r.setImagenUrl(dto.getImagenUrl());
-        r.setUsuarioId(usuarioId);
-        r.setEstado("Pendiente");
-        r.setCreadoEn(LocalDateTime.now());
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
-        store.computeIfAbsent(usuarioId, k -> new ArrayList<>()).add(r);
-        return r;
+    @Autowired
+    private CondominioRepository condominioRepository;
+
+    @Transactional
+    public Reporte crearReporte(CrearReporteDTO crearReporteDTO) {
+        Usuario usuario = usuarioRepository.findById(crearReporteDTO.getUsuarioId().intValue())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Condominio condominio = condominioRepository.findById(crearReporteDTO.getCondominioId().intValue())
+                .orElseThrow(() -> new RuntimeException("Condominio no encontrado"));
+
+        Reporte reporte = new Reporte();
+        reporte.setTitulo(crearReporteDTO.getTitulo());
+        reporte.setDescripcion(crearReporteDTO.getDescripcion());
+        reporte.setUbicacion(crearReporteDTO.getUbicacion());
+        reporte.setTipo(crearReporteDTO.getTipo());
+        reporte.setUsuario(usuario);
+        reporte.setCondominio(condominio);
+        reporte.setEstado("pendiente");
+
+        return reporteRepository.save(reporte);
     }
 
-    public List<Reporte> obtenerReportesPorUsuario(Integer usuarioId) {
-        return store.getOrDefault(usuarioId, Collections.emptyList());
+    @Transactional(readOnly = true)
+    public List<Reporte> obtenerReportesPorUsuario(Long usuarioId) {
+        return reporteRepository.findByUsuarioId(usuarioId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Reporte> obtenerReportesPorCondominio(Long condominioId) {
+        return reporteRepository.findByCondominioId(condominioId);
+    }
+
+    @Transactional
+    public Reporte actualizarEstado(Long reporteId, String estado) {
+        Reporte reporte = reporteRepository.findById(reporteId)
+                .orElseThrow(() -> new RuntimeException("Reporte no encontrado"));
+        reporte.setEstado(estado);
+        return reporteRepository.save(reporte);
     }
 }

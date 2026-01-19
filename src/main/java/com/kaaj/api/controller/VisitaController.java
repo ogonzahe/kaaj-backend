@@ -31,7 +31,7 @@ public class VisitaController {
     @PostMapping("/generar")
     public ResponseEntity<?> generarVisita(@RequestBody VisitaRequest request) {
         try {
-            // Generar código QR único
+            // Generar c??digo QR ??nico
             String codigoQr = "KAJ-VIS-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
             Visita visita = new Visita();
@@ -80,7 +80,7 @@ public class VisitaController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Este QR ya fue utilizado");
             }
 
-            // Verificar si está expirado (fecha programada pasada)
+            // Verificar si est?? expirado (fecha programada pasada)
             if (visita.getFechaProgramada().isBefore(java.time.LocalDate.now())) {
                 visita.setEstado(Visita.EstadoVisita.Expirado);
                 visitaRepo.save(visita);
@@ -123,7 +123,7 @@ public class VisitaController {
         }
     }
 
-    // Obtener todas las visitas (para administración)
+    // Obtener todas las visitas (para administraci??n)
     @GetMapping
     public ResponseEntity<?> getAllVisitas() {
         try {
@@ -138,7 +138,7 @@ public class VisitaController {
         }
     }
 
-    // Obtener estadísticas de visitas
+    // Obtener estad??sticas de visitas
     @GetMapping("/estadisticas")
     public ResponseEntity<?> getEstadisticas() {
         try {
@@ -156,11 +156,11 @@ public class VisitaController {
             return ResponseEntity.ok(estadisticas);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al obtener estadísticas: " + e.getMessage());
+                    .body("Error al obtener estad??sticas: " + e.getMessage());
         }
     }
 
-    // Método auxiliar para mapear entidad a DTO
+    // M??todo auxiliar para mapear entidad a DTO
     private VisitaResponse mapToResponse(Visita visita) {
         VisitaResponse response = new VisitaResponse();
         response.setId(visita.getId());

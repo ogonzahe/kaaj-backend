@@ -5,7 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface AmenidadRepository extends JpaRepository<Amenidad, Integer> {
-    List<Amenidad> findByEstadoOrderByNombreAsc(Amenidad.EstadoAmenidad estado);
+    // ESTE ES EL MÉTODO IMPORTANTE QUE FALTABA
+    List<Amenidad> findByCondominioId(Integer condominioId);
 
+    // Otros métodos auxiliares
+    List<Amenidad> findByEstadoOrderByNombreAsc(Amenidad.EstadoAmenidad estado);
     Amenidad findByNombre(String nombre);
 }

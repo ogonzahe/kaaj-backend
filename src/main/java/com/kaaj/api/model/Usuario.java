@@ -1,12 +1,9 @@
 package com.kaaj.api.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Column;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "usuarios")
@@ -22,17 +19,44 @@ public class Usuario {
     @Column(nullable = false)
     private String contrasena;
 
+    @Column(name = "nombre")
+    private String nombre;
+
+    @Column(name = "telefono")
+    private String telefono;
+
     @Column(name = "rol_id")
     private Integer rolId;
 
     @Column(name = "rol_nombre")
     private String rolNombre;
 
+    @ManyToOne
+    @JoinColumn(name = "condominio_id")
+    private Condominio condominio;
+
+    @ManyToOne
+    @JoinColumn(name = "apartamento_id")
+    private Apartamento apartamento;
+
+    @Column(name = "numero_casa")
+    private String numeroCasa;
+
+    // === RELACIÓN CON NOTIFICACIONES - CON ELIMINACIÓN EN CASCADA ===
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notificacion> notificaciones = new ArrayList<>();
+    // ===============================================================
+
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
 
-    // Getters y setters
+    @Column(name = "actualizado_en")
+    private LocalDateTime actualizadoEn;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
+    // Getters y Setters
     public Integer getId() {
         return id;
     }
@@ -57,6 +81,22 @@ public class Usuario {
         this.contrasena = contrasena;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
     public Integer getRolId() {
         return rolId;
     }
@@ -73,11 +113,132 @@ public class Usuario {
         this.rolNombre = rolNombre;
     }
 
+    public Condominio getCondominio() {
+        return condominio;
+    }
+
+    public void setCondominio(Condominio condominio) {
+        this.condominio = condominio;
+    }
+
+    public Apartamento getApartamento() {
+        return apartamento;
+    }
+
+    public void setApartamento(Apartamento apartamento) {
+        this.apartamento = apartamento;
+    }
+
+    public String getNumeroCasa() {
+        return numeroCasa;
+    }
+
+    public void setNumeroCasa(String numeroCasa) {
+        this.numeroCasa = numeroCasa;
+    }
+
+    // === GETTER Y SETTER PARA NOTIFICACIONES ===
+    public List<Notificacion> getNotificaciones() {
+        return notificaciones;
+    }
+
+    public void setNotificaciones(List<Notificacion> notificaciones) {
+        this.notificaciones = notificaciones;
+    }
+    // ===========================================
+
     public LocalDateTime getCreadoEn() {
         return creadoEn;
     }
 
     public void setCreadoEn(LocalDateTime creadoEn) {
         this.creadoEn = creadoEn;
+    }
+
+    public LocalDateTime getActualizadoEn() {
+        return actualizadoEn;
+    }
+
+    public void setActualizadoEn(LocalDateTime actualizadoEn) {
+        this.actualizadoEn = actualizadoEn;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
+
+    // MÉTODOS DE CONVENIENCIA
+    public Integer getCondominioId() {
+        return (condominio != null && condominio.getId() != null) ? condominio.getId() : null;
+    }
+
+    public void setCondominioId(Integer condominioId) {
+        if (condominioId != null) {
+            Condominio cond = new Condominio();
+            cond.setId(condominioId);
+            this.condominio = cond;
+        } else {
+            this.condominio = null;
+        }
+    }
+
+    public boolean perteneceACondominio(Integer condominioId) {
+        return (condominio != null && condominio.getId() != null &&
+                condominio.getId().equals(condominioId));
+    }
+
+    public Integer getApartamentoId() {
+        return (apartamento != null && apartamento.getId() != null) ? apartamento.getId() : null;
+    }
+
+    public String getDireccionApartamento() {
+        if (apartamento != null) {
+            return apartamento.getEdificio() + "-" + apartamento.getNumero();
+        }
+        return null;
+    }
+
+    public boolean esAdmin() {
+        return "admin_usuario".equalsIgnoreCase(rolNombre) ||
+               "ADMIN".equalsIgnoreCase(rolNombre);
+    }
+
+    public boolean esResidente() {
+        return "USUARIO".equalsIgnoreCase(rolNombre) ||
+               "RESIDENTE".equalsIgnoreCase(rolNombre);
+    }
+
+    public boolean esSeguridad() {
+        return "SEGURIDAD".equalsIgnoreCase(rolNombre);
+    }
+
+    public boolean esCopropietario() {
+        return "COPO".equalsIgnoreCase(rolNombre) ||
+               "COPROPIETARIO".equalsIgnoreCase(rolNombre);
+    }
+
+    // MÉTODO PARA ACTUALIZAR TIMESTAMPS
+    @PrePersist
+    protected void onCreate() {
+        creadoEn = LocalDateTime.now();
+        actualizadoEn = LocalDateTime.now();
+        if (activo == null) {
+            activo = true;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        actualizadoEn = LocalDateTime.now();
+    }
+
+    // MÉTODO PARA VALIDACIÓN BÁSICA
+    public boolean isValid() {
+        return correo != null && !correo.trim().isEmpty() &&
+               contrasena != null && !contrasena.trim().isEmpty();
     }
 }

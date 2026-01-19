@@ -3,7 +3,9 @@ package com.kaaj;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling; // IMPORTANTE: Esta línea debe estar
 
+@EnableScheduling // Habilita la ejecución de jobs programados
 @SpringBootApplication
 @ComponentScan(basePackages = { "com.kaaj", "com.kaaj.api" })
 public class KaajBackendApplication {

@@ -36,7 +36,7 @@ public class MantenimientoService {
         nuevoMantenimiento.setMensaje(dto.getMensaje());
 
         TipoMantenimiento tipo = tipoMantenimientoRepository.findById(dto.getIdTipo())
-            .orElseThrow(() -> new Exception("Tipo de Mantenimiento no válido."));
+            .orElseThrow(() -> new Exception("Tipo de Mantenimiento no v??lido."));
         nuevoMantenimiento.setTipo(tipo);
 
         EstatusMantenimientoEntity estatusInicial = estatusMantenimientoRepository.findById(ESTATUS_INICIAL_ID)
