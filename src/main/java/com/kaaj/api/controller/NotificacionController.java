@@ -131,35 +131,41 @@ public class NotificacionController {
         }
     }
 
-    // 3. PUT: Marcar notificación como leída
+    // 3. PUT: Marcar notificación como leída (PARA ADMIN)
     @PutMapping("/{id}/leer")
     public ResponseEntity<?> marcarComoLeida(
             @PathVariable Integer id,
             @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
         try {
-            Usuario admin = usuarioRepository.findById(usuarioId)
+            Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-            if (!admin.esAdmin()) {
-                throw new RuntimeException("No tienes permisos de administrador");
-            }
-
-            // Obtener la notificación primero para saber a qué condominio pertenece
+            // Obtener la notificación
             Notificacion notificacion = notificacionRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Notificación no encontrada"));
 
-            // Verificar que el admin tiene acceso al condominio de la notificación
-            List<Integer> condominiosPermitidos = obtenerCondominiosDelAdmin(admin);
-            if (!condominiosPermitidos.contains(notificacion.getCondominio().getId())) {
-                throw new RuntimeException("No tienes permiso para modificar esta notificación");
+            // Verificar permisos
+            if (usuario.esAdmin()) {
+                // Para admin: verificar que tiene acceso al condominio
+                List<Integer> condominiosPermitidos = obtenerCondominiosDelAdmin(usuario);
+                if (!condominiosPermitidos.contains(notificacion.getCondominio().getId())) {
+                    throw new RuntimeException("No tienes permiso para modificar esta notificación");
+                }
+            } else {
+                // Para usuario normal: verificar que la notificación es para él
+                if (notificacion.getUsuario() != null && !notificacion.getUsuario().getId().equals(usuarioId)) {
+                    throw new RuntimeException("Esta notificación no es para ti");
+                }
             }
 
-            Notificacion notifActualizada = notificacionService.marcarComoLeida(id, notificacion.getCondominio().getId());
+            // Marcar como leída
+            notificacion.setLeida(true);
+            notificacionRepository.save(notificacion);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Notificación marcada como leída");
-            response.put("notificacion", notifActualizada);
+            response.put("notificacion", notificacion);
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -220,7 +226,7 @@ public class NotificacionController {
 
     // ========== MÉTODOS PARA USUARIOS/RESIDENTES ==========
 
-    // 5. GET: Obtener mis notificaciones (para residentes)
+    // 5. GET: Obtener mis notificaciones (para residentes) - CORREGIDO
     @GetMapping("/mis-notificaciones")
     public ResponseEntity<?> obtenerMisNotificaciones(
             @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
@@ -228,13 +234,28 @@ public class NotificacionController {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-            List<Notificacion> notificaciones = notificacionService.obtenerNotificacionesUsuario(
-                    usuarioId, usuario.getCondominioId());
+            Integer condominioId = usuario.getCondominioId();
+            if (condominioId == null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("notificaciones", new ArrayList<>());
+                response.put("total", 0);
+                return ResponseEntity.ok(response);
+            }
+
+            // Obtener notificaciones del condominio del usuario
+            List<Notificacion> todasNotificaciones = notificacionRepository.findByCondominioId(condominioId);
+
+            // Filtrar: notificaciones generales (sin usuario) o específicas para este usuario
+            List<Notificacion> misNotificaciones = todasNotificaciones.stream()
+                    .filter(notif -> notif.getUsuario() == null ||
+                            notif.getUsuario().getId().equals(usuarioId))
+                    .toList();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("notificaciones", notificaciones);
-            response.put("total", notificaciones.size());
+            response.put("notificaciones", misNotificaciones);
+            response.put("total", misNotificaciones.size());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -245,7 +266,7 @@ public class NotificacionController {
         }
     }
 
-    // 6. GET: Obtener notificaciones no leídas (para frontend)
+    // 6. GET: Obtener notificaciones no leídas (para frontend) - CORREGIDO
     @GetMapping("/no-leidas")
     public ResponseEntity<?> obtenerNotificacionesNoLeidas(
             @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
@@ -253,13 +274,28 @@ public class NotificacionController {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-            List<Notificacion> notificaciones = notificacionService.obtenerNotificacionesNoLeidas(usuario.getCondominioId());
+            Integer condominioId = usuario.getCondominioId();
+            if (condominioId == null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("notificaciones", new ArrayList<>());
+                response.put("total", 0);
+                return ResponseEntity.ok(response);
+            }
 
-            // Filtrar solo las no leídas del usuario
-            List<Notificacion> noLeidas = notificaciones.stream()
-                    .filter(notif -> notif.getUsuario() == null ||
-                            (notif.getUsuario() != null && notif.getUsuario().getId().equals(usuarioId)))
-                    .filter(notif -> !notif.getLeida())
+            // Obtener todas las notificaciones del condominio
+            List<Notificacion> todasNotificaciones = notificacionRepository.findByCondominioId(condominioId);
+
+            // Filtrar notificaciones no leídas para este usuario
+            List<Notificacion> noLeidas = todasNotificaciones.stream()
+                    .filter(notif -> {
+                        // Verificar que la notificación es para este usuario
+                        boolean esParaUsuario = notif.getUsuario() == null ||
+                                                notif.getUsuario().getId().equals(usuarioId);
+                        // Verificar que no está leída
+                        boolean noLeida = !notif.getLeida();
+                        return esParaUsuario && noLeida;
+                    })
                     .toList();
 
             Map<String, Object> response = new HashMap<>();
@@ -321,7 +357,7 @@ public class NotificacionController {
                 throw new RuntimeException("No tienes acceso a este condominio");
             }
 
-            List<Notificacion> notificaciones = notificacionService.obtenerTodasNotificaciones(List.of(condominioId));
+            List<Notificacion> notificaciones = notificacionRepository.findByCondominioId(condominioId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -359,16 +395,20 @@ public class NotificacionController {
             // Obtener todos los condominios del admin
             List<Integer> condominiosIds = obtenerCondominiosDelAdmin(admin);
 
-            List<Notificacion> todas = notificacionService.obtenerTodasNotificaciones(condominiosIds);
-
-            // Contar no leídas por condominio
+            long total = 0;
+            long totalLeidas = 0;
             long totalNoLeidas = 0;
-            for (Integer condominioId : condominiosIds) {
-                totalNoLeidas += notificacionService.contarNotificacionesNoLeidas(condominioId);
-            }
 
-            long total = todas.size();
-            long totalLeidas = total - totalNoLeidas;
+            for (Integer condominioId : condominiosIds) {
+                List<Notificacion> notificaciones = notificacionRepository.findByCondominioId(condominioId);
+                total += notificaciones.size();
+
+                long leidas = notificaciones.stream().filter(Notificacion::getLeida).count();
+                long noLeidas = notificaciones.size() - leidas;
+
+                totalLeidas += leidas;
+                totalNoLeidas += noLeidas;
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
