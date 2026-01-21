@@ -1,35 +1,25 @@
 package com.kaaj.api.model;
 
-import java.sql.Timestamp;
-
-import org.hibernate.annotations.GenericGenerator;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "tipo_mantenimiento")
 public class TipoMantenimiento {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tipo")
-    private Long id;
+    private Integer idTipo;
 
-    @Column(name="descripcion")
+    @Column(name = "descripcion", nullable = false)
     private String descripcion;
 
-
-    public Long getId() {
-        return id;
+    // Getters y Setters
+    public Integer getIdTipo() {
+        return idTipo;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setIdTipo(Integer idTipo) {
+        this.idTipo = idTipo;
     }
 
     public String getDescripcion() {
@@ -39,5 +29,4 @@ public class TipoMantenimiento {
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
     }
-    public TipoMantenimiento() {}
 }

@@ -1,88 +1,187 @@
 package com.kaaj.api.service;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import com.kaaj.api.dto.MantenimientoDTO;
 import com.kaaj.api.dto.ReporteMantenimientoDTO;
-import com.kaaj.api.model.EstatusMantenimientoEntity;
 import com.kaaj.api.model.MantenimientoEntity;
 import com.kaaj.api.model.TipoMantenimiento;
-import com.kaaj.api.repository.EstatusMantenimientoRepository;
+import com.kaaj.api.model.EstatusMantenimientoEntity;
 import com.kaaj.api.repository.MantenimientoRepository;
 import com.kaaj.api.repository.TipoMantenimientoRepository;
+import com.kaaj.api.repository.EstatusMantenimientoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class MantenimientoService {
+
     @Autowired
     private MantenimientoRepository mantenimientoRepository;
- 
+
     @Autowired
     private TipoMantenimientoRepository tipoMantenimientoRepository;
+
     @Autowired
     private EstatusMantenimientoRepository estatusMantenimientoRepository;
 
-    @Transactional
-    public MantenimientoEntity crearMantenimiento(ReporteMantenimientoDTO dto) throws Exception {
-        MantenimientoEntity nuevoMantenimiento = new MantenimientoEntity();
-        final Integer ESTATUS_INICIAL_ID = 1; 
-        nuevoMantenimiento.setTituloReporte(dto.getTituloReporte());
-        nuevoMantenimiento.setUsuarioApartamento(dto.getUsuarioApartamento());
-        nuevoMantenimiento.setMensaje(dto.getMensaje());
+    public MantenimientoEntity crearMantenimiento(ReporteMantenimientoDTO reporteDTO) {
+        MantenimientoEntity mantenimiento = new MantenimientoEntity();
 
-        TipoMantenimiento tipo = tipoMantenimientoRepository.findById(dto.getIdTipo())
-            .orElseThrow(() -> new Exception("Tipo de Mantenimiento no v??lido."));
-        nuevoMantenimiento.setTipo(tipo);
+        // Configurar datos básicos
+        mantenimiento.setTituloReporte(reporteDTO.getTituloReporte());
+        mantenimiento.setMensaje(reporteDTO.getDescripcion());
+        mantenimiento.setUsuarioApartamento(reporteDTO.getUsuario() + " - Casa " + reporteDTO.getNumeroCasa());
+        mantenimiento.setFechaAlta(new Date());
 
-        EstatusMantenimientoEntity estatusInicial = estatusMantenimientoRepository.findById(ESTATUS_INICIAL_ID)
-            .orElseThrow(() -> new Exception("Estatus inicial no encontrado."));
-        nuevoMantenimiento.setEstatus(estatusInicial); 
-        nuevoMantenimiento.setFechaAlta(new Date());
+        // Configurar condominio y usuario
+        mantenimiento.setCondominioId(reporteDTO.getCondominioId());
+        mantenimiento.setUsuarioId(reporteDTO.getUsuarioId());
+        mantenimiento.setUbicacion(reporteDTO.getUbicacion());
+        mantenimiento.setNumeroCasa(reporteDTO.getNumeroCasa());
 
-        return mantenimientoRepository.save(nuevoMantenimiento);
+        // Configurar tipo
+        TipoMantenimiento tipo = tipoMantenimientoRepository.findById(reporteDTO.getIdTipo())
+                .orElseGet(() -> {
+                    // Si no existe, crear uno por defecto
+                    TipoMantenimiento defaultTipo = new TipoMantenimiento();
+                    defaultTipo.setIdTipo(2); // Informativo por defecto
+                    defaultTipo.setDescripcion("Informativo");
+                    return tipoMantenimientoRepository.save(defaultTipo);
+                });
+        mantenimiento.setTipo(tipo);
+
+        // Configurar estatus inicial como "Pendiente" (id=1)
+        EstatusMantenimientoEntity estatus = estatusMantenimientoRepository.findById(1)
+                .orElseGet(() -> {
+                    // Si no existe, crear uno por defecto
+                    EstatusMantenimientoEntity defaultEstatus = new EstatusMantenimientoEntity();
+                    defaultEstatus.setIdEstatus(1);
+                    defaultEstatus.setDescripcion("Pendiente");
+                    return estatusMantenimientoRepository.save(defaultEstatus);
+                });
+        mantenimiento.setEstatus(estatus);
+
+        return mantenimientoRepository.save(mantenimiento);
     }
 
-    @Transactional 
-    public MantenimientoEntity actualizarEstatusAResuelto(Integer idMantenimiento) throws Exception {
+    public List<MantenimientoDTO> obtenerHistorialReportes() {
+        List<MantenimientoEntity> mantenimientos = mantenimientoRepository.findAllOrderByFechaAltaDesc();
 
-        final Integer ESTATUS_RESUELTO_ID = 2; 
+        return mantenimientos.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
 
-        MantenimientoEntity mantenimiento = mantenimientoRepository.findById(idMantenimiento)
-            .orElseThrow(() -> new Exception("Reporte de Mantenimiento no encontrado con ID: " + idMantenimiento));
+    public List<MantenimientoDTO> obtenerReportesPorCondominio(Integer condominioId) {
+        List<MantenimientoEntity> mantenimientos = mantenimientoRepository.findByCondominioId(condominioId);
 
-        EstatusMantenimientoEntity estatusResuelto = estatusMantenimientoRepository.findById(ESTATUS_RESUELTO_ID)
-            .orElseThrow(() -> new Exception("Estatus Resuelto no encontrado."));
+        return mantenimientos.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
 
-        mantenimiento.setEstatus(estatusResuelto); 
+    public List<MantenimientoDTO> obtenerReportesPorUsuario(Integer usuarioId) {
+        List<MantenimientoEntity> mantenimientos = mantenimientoRepository.findByUsuarioId(usuarioId);
+
+        // Si no hay resultados por usuarioId, buscar por nombre de usuario
+        if (mantenimientos.isEmpty()) {
+            mantenimientos = mantenimientoRepository.findAll().stream()
+                    .filter(m -> {
+                        String usuarioApartamento = m.getUsuarioApartamento();
+                        return usuarioApartamento != null && usuarioApartamento.contains("ID:" + usuarioId);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        return mantenimientos.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public MantenimientoEntity actualizarEstatusAResuelto(Integer id) {
+        MantenimientoEntity mantenimiento = mantenimientoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reporte de Mantenimiento no encontrado"));
+
+        // Buscar estatus "Resuelto" (id=2)
+        EstatusMantenimientoEntity estatusResuelto = estatusMantenimientoRepository.findById(2)
+                .orElseGet(() -> {
+                    // Si no existe, crear uno
+                    EstatusMantenimientoEntity nuevo = new EstatusMantenimientoEntity();
+                    nuevo.setIdEstatus(2);
+                    nuevo.setDescripcion("Resuelto");
+                    return estatusMantenimientoRepository.save(nuevo);
+                });
+
+        mantenimiento.setEstatus(estatusResuelto);
         mantenimiento.setFechaMod(new Date());
 
         return mantenimientoRepository.save(mantenimiento);
     }
 
-public List<MantenimientoDTO> obtenerHistorialReportes() {
-    
-    List<MantenimientoEntity> entidades = mantenimientoRepository.findAll();
-    
-    return entidades.stream()
-        .map(entity -> {
-            String tipoDesc = entity.getTipo().getDescripcion();
-            String estatusDesc = entity.getEstatus().getDescripcion();
-            
-            return new MantenimientoDTO(
-                entity.getIdMantenimiento(),
-                entity.getFechaAlta(), 
-                entity.getTituloReporte(),
-                entity.getMensaje(),
-                tipoDesc,
-                estatusDesc
-            );
-        })
-        .collect(Collectors.toList());
-}
+    public MantenimientoEntity reabrirReporte(Integer id) {
+        MantenimientoEntity mantenimiento = mantenimientoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reporte de Mantenimiento no encontrado"));
 
+        // Buscar estatus "Pendiente" (id=1)
+        EstatusMantenimientoEntity estatusPendiente = estatusMantenimientoRepository.findById(1)
+                .orElseGet(() -> {
+                    EstatusMantenimientoEntity nuevo = new EstatusMantenimientoEntity();
+                    nuevo.setIdEstatus(1);
+                    nuevo.setDescripcion("Pendiente");
+                    return estatusMantenimientoRepository.save(nuevo);
+                });
+
+        mantenimiento.setEstatus(estatusPendiente);
+        mantenimiento.setFechaMod(new Date());
+
+        return mantenimientoRepository.save(mantenimiento);
+    }
+
+    public MantenimientoEntity cancelarReporte(Integer id) {
+        MantenimientoEntity mantenimiento = mantenimientoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reporte de Mantenimiento no encontrado"));
+
+        // Buscar estatus "Cancelado" (id=3)
+        Optional<EstatusMantenimientoEntity> estatusCanceladoOpt = estatusMantenimientoRepository.findById(3);
+
+        EstatusMantenimientoEntity estatusCancelado;
+        if (estatusCanceladoOpt.isPresent()) {
+            estatusCancelado = estatusCanceladoOpt.get();
+        } else {
+            // Si no existe estatus Cancelado, crear uno
+            EstatusMantenimientoEntity nuevo = new EstatusMantenimientoEntity();
+            nuevo.setIdEstatus(3);
+            nuevo.setDescripcion("Cancelado");
+            estatusCancelado = estatusMantenimientoRepository.save(nuevo);
+        }
+
+        mantenimiento.setEstatus(estatusCancelado);
+        mantenimiento.setFechaMod(new Date());
+
+        return mantenimientoRepository.save(mantenimiento);
+    }
+
+    public void eliminarReporte(Integer id) {
+        if (!mantenimientoRepository.existsById(id)) {
+            throw new RuntimeException("Reporte de Mantenimiento no encontrado");
+        }
+        mantenimientoRepository.deleteById(id);
+    }
+
+    private MantenimientoDTO convertToDTO(MantenimientoEntity mantenimiento) {
+        return new MantenimientoDTO(
+            mantenimiento.getIdMantenimiento(),
+            mantenimiento.getFechaAlta(),
+            mantenimiento.getTituloReporte(),
+            mantenimiento.getMensaje(),
+            mantenimiento.getTipo() != null ? mantenimiento.getTipo().getDescripcion() : "Informativo",
+            mantenimiento.getEstatus() != null ? mantenimiento.getEstatus().getDescripcion() : "Pendiente"
+        );
+    }
 }
