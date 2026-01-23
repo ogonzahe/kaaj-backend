@@ -33,12 +33,12 @@ public class DocumentoController {
             @RequestParam("titulo") String titulo,
             @RequestParam(value = "descripcion", required = false) String descripcion,
             @RequestParam(value = "condominioId", required = false) Long condominioId,
-            @RequestParam(value = "condominio_id", required = false) Long condominioIdAlt, // Alias para compatibilidad
+            @RequestParam(value = "condominio_id", required = false) Long condominioIdAlt,
             @RequestParam(value = "categoriaId", required = false) Long categoriaId,
-            @RequestParam(value = "categoria_id", required = false) Long categoriaIdAlt, // Alias para compatibilidad
+            @RequestParam(value = "categoria_id", required = false) Long categoriaIdAlt,
             @RequestParam(value = "fechaVigencia", required = false) String fechaVigencia,
             @RequestParam(value = "esPublico", defaultValue = "true") Boolean esPublico,
-            @RequestParam(value = "es_publico", defaultValue = "true") Boolean esPublicoAlt, // Alias para compatibilidad
+            @RequestParam(value = "es_publico", defaultValue = "true") Boolean esPublicoAlt,
             @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Long usuarioId) {
 
         try {
@@ -52,15 +52,9 @@ public class DocumentoController {
             System.out.println("es_publico (2): " + esPublicoAlt);
             System.out.println("usuarioId: " + usuarioId);
 
-            // Consolidar parámetros (usar el primero que tenga valor)
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
             Boolean esPublicoFinal = esPublicoAlt != null ? esPublicoAlt : esPublico;
-
-            System.out.println("Valores consolidados:");
-            System.out.println("condominioFinal: " + condominioFinal);
-            System.out.println("categoriaFinal: " + categoriaFinal);
-            System.out.println("esPublicoFinal: " + esPublicoFinal);
 
             DocumentoDTO documentoDTO = new DocumentoDTO();
             documentoDTO.setTitulo(titulo);
@@ -108,7 +102,6 @@ public class DocumentoController {
             @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Long usuarioId) {
 
         try {
-            // Consolidar parámetros
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
             Boolean esPublicoFinal = esPublicoAlt != null ? esPublicoAlt : esPublico;
@@ -147,23 +140,70 @@ public class DocumentoController {
             @RequestParam(value = "condominio_id", required = false) Long condominioIdAlt,
             @RequestParam(value = "categoriaId", required = false) Long categoriaId,
             @RequestParam(value = "categoria_id", required = false) Long categoriaIdAlt,
-            @RequestParam(value = "publicos", defaultValue = "true") Boolean publicos) {
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioId,
+            @RequestHeader(value = "X-Condominio-Id", required = false) Long condominioUsuarioId) {
 
         try {
-            System.out.println("=== OBTENIENDO DOCUMENTOS ===");
-            System.out.println("condominioId (1): " + condominioId);
-            System.out.println("condominio_id (2): " + condominioIdAlt);
-            System.out.println("categoriaId (1): " + categoriaId);
-            System.out.println("categoria_id (2): " + categoriaIdAlt);
-            System.out.println("publicos: " + publicos);
+            System.out.println("=== OBTENIENDO DOCUMENTOS (PÚBLICO) ===");
+            System.out.println("Usuario ID: " + usuarioId);
+            System.out.println("User Role: " + userRole);
+            System.out.println("Condominio Usuario: " + condominioUsuarioId);
 
-            // Consolidar parámetros
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
 
-            System.out.println("Valores consolidados:");
-            System.out.println("condominioFinal: " + condominioFinal);
-            System.out.println("categoriaFinal: " + categoriaFinal);
+            List<DocumentoDTO> documentos;
+
+            // LÓGICA MEJORADA: Documentos visibles según rol
+            if ("admin_usuario".equals(userRole) || "COPO".equals(userRole)) {
+                // Admin/COPO ve TODOS los documentos (públicos y privados)
+                System.out.println("🔑 Admin/COPO: Mostrando TODOS los documentos");
+                documentos = documentoService.obtenerTodosDocumentos(condominioFinal, categoriaFinal);
+            } else if ("USUARIO".equals(userRole) || "SEGURIDAD".equals(userRole)) {
+                // Usuario/seguridad ve documentos públicos + privados de SU condominio
+                System.out.println("👤 Usuario/Seguridad: Mostrando documentos del condominio " + condominioUsuarioId);
+                documentos = documentoService.obtenerDocumentosParaUsuario(condominioUsuarioId, condominioFinal, categoriaFinal);
+            } else {
+                // Usuario no autenticado o rol desconocido: solo documentos públicos
+                System.out.println("👤 Usuario no autenticado: Mostrando solo documentos públicos");
+                documentos = documentoService.obtenerDocumentosPublicos(condominioFinal, categoriaFinal);
+            }
+
+            System.out.println("Documentos encontrados: " + documentos.size());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("documentos", documentos);
+            response.put("total", documentos.size());
+            response.put("condominioFiltrado", condominioFinal);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("ERROR al obtener documentos: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener documentos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    @GetMapping("/documentos/admin")
+    public ResponseEntity<?> obtenerDocumentosAdmin(
+            @RequestParam(value = "condominioId", required = false) Long condominioId,
+            @RequestParam(value = "condominio_id", required = false) Long condominioIdAlt,
+            @RequestParam(value = "categoriaId", required = false) Long categoriaId,
+            @RequestParam(value = "categoria_id", required = false) Long categoriaIdAlt,
+            @RequestParam(value = "publicos", defaultValue = "false") Boolean publicos) {
+
+        try {
+            System.out.println("=== OBTENIENDO DOCUMENTOS (ADMIN) ===");
+            System.out.println("publicos: " + publicos);
+
+            Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
+            Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
 
             List<DocumentoDTO> documentos;
 
@@ -173,18 +213,15 @@ public class DocumentoController {
                 documentos = documentoService.obtenerTodosDocumentos(condominioFinal, categoriaFinal);
             }
 
-            System.out.println("Documentos encontrados: " + documentos.size());
-
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("documentos", documentos);
             response.put("total", documentos.size());
-            response.put("condominioFiltrado", condominioFinal); // Para debug
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al obtener documentos: " + e.getMessage());
+            System.err.println("ERROR al obtener documentos admin: " + e.getMessage());
             e.printStackTrace();
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);

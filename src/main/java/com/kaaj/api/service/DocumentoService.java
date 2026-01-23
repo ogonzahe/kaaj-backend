@@ -45,7 +45,6 @@ public class DocumentoService {
     private String uploadDir;
 
     private Path getUploadPath() throws IOException {
-        // Crear directorio específico para documentos
         Path path = Paths.get(uploadDir);
         if (!Files.exists(path)) {
             Files.createDirectories(path);
@@ -53,17 +52,77 @@ public class DocumentoService {
         return path;
     }
 
-    // Crear documento
+    // NUEVO MÉTODO: Obtener documentos para usuario normal
+    @Transactional(readOnly = true)
+    public List<DocumentoDTO> obtenerDocumentosParaUsuario(Long condominioUsuarioId, Long condominioFiltro, Long categoriaId) {
+        List<Documento> documentos;
+
+        Long condominioIdFinal = condominioFiltro != null ? condominioFiltro : condominioUsuarioId;
+
+        if (condominioIdFinal != null) {
+            if (categoriaId != null) {
+                documentos = documentoRepository.findByCondominioIdAndCategoriaId(
+                    condominioIdFinal, categoriaId);
+            } else {
+                documentos = documentoRepository.findByCondominioIdAndEsPublicoTrueOrCondominioId(
+                    condominioIdFinal, condominioIdFinal);
+            }
+        } else {
+            documentos = documentoRepository.findByEsPublicoTrue();
+        }
+
+        return documentos.stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DocumentoDTO> obtenerTodosDocumentos(Long condominioId, Long categoriaId) {
+        List<Documento> documentos;
+
+        if (condominioId != null && categoriaId != null) {
+            documentos = documentoRepository.findByCondominioIdAndCategoriaId(condominioId, categoriaId);
+        } else if (condominioId != null) {
+            documentos = documentoRepository.findByCondominioId(condominioId);
+        } else if (categoriaId != null) {
+            documentos = documentoRepository.findByCategoriaId(categoriaId);
+        } else {
+            documentos = documentoRepository.findAll();
+        }
+
+        return documentos.stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DocumentoDTO> obtenerDocumentosPublicos(Long condominioId, Long categoriaId) {
+        List<Documento> documentos;
+
+        if (condominioId != null) {
+            if (categoriaId != null) {
+                documentos = documentoRepository.findByCondominioIdAndCategoriaIdAndEsPublicoTrue(
+                    condominioId, categoriaId);
+            } else {
+                documentos = documentoRepository.findByCondominioIdAndEsPublicoTrue(condominioId);
+            }
+        } else {
+            documentos = documentoRepository.findByEsPublicoTrue();
+        }
+
+        return documentos.stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public DocumentoDTO crearDocumento(DocumentoDTO documentoDTO, MultipartFile archivo, Long usuarioId)
             throws IOException {
 
-        // Validar que haya archivo
         if (archivo == null || archivo.isEmpty()) {
             throw new RuntimeException("El archivo es requerido");
         }
 
-        // Validar tamaño del archivo (10MB máximo)
         if (archivo.getSize() > 10 * 1024 * 1024) {
             throw new RuntimeException("El archivo es demasiado grande. Máximo 10MB");
         }
@@ -72,14 +131,12 @@ public class DocumentoService {
         documento.setTitulo(documentoDTO.getTitulo());
         documento.setDescripcion(documentoDTO.getDescripcion());
 
-        // Asignar condominio
         if (documentoDTO.getCondominioId() != null) {
             Condominio condominio = condominioRepository.findById(documentoDTO.getCondominioId().intValue())
                     .orElseThrow(() -> new RuntimeException("Condominio no encontrado"));
             documento.setCondominio(condominio);
         }
 
-        // Asignar categoría
         if (documentoDTO.getCategoriaId() != null) {
             CategoriaDocumento categoria = categoriaDocumentoRepository.findById(documentoDTO.getCategoriaId())
                     .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
@@ -89,12 +146,10 @@ public class DocumentoService {
         documento.setFechaVigencia(documentoDTO.getFechaVigencia());
         documento.setEsPublico(documentoDTO.getEsPublico() != null ? documentoDTO.getEsPublico() : true);
 
-        // Asignar usuario creador
         Usuario usuario = usuarioRepository.findById(usuarioId.intValue())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         documento.setCreadoPor(usuario);
 
-        // Guardar archivo
         Path uploadPath = getUploadPath();
         String nombreOriginal = archivo.getOriginalFilename();
         String extension = "";
@@ -103,14 +158,11 @@ public class DocumentoService {
             extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
         }
 
-        // Generar nombre único para el archivo
         String nombreArchivo = UUID.randomUUID().toString() + extension;
         Path destinationFile = uploadPath.resolve(nombreArchivo).normalize().toAbsolutePath();
 
-        // Guardar archivo en disco
         Files.copy(archivo.getInputStream(), destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
-        // Guardar información del archivo en la base de datos
         documento.setNombreArchivo(nombreOriginal);
         documento.setRutaArchivo(destinationFile.toString());
         documento.setTamanio(archivo.getSize());
@@ -120,26 +172,15 @@ public class DocumentoService {
         return convertirADTO(saved);
     }
 
-    // Actualizar documento
     @Transactional
     public DocumentoDTO actualizarDocumento(Long documentoId, DocumentoDTO documentoDTO, MultipartFile archivo,
             Long usuarioId) throws IOException {
         Documento documento = documentoRepository.findById(documentoId)
                 .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
 
-        /* NOTA: También podrías querer comentar esta validación si el Admin va a editar documentos de otros.
-           Por ahora la dejo como estaba para no alterar la lógica de edición,
-           pero si tienes problemas editando, comenta el bloque 'if' siguiente. */
-        if (documento.getCreadoPor() == null || documento.getCreadoPor().getId() == null ||
-            !documento.getCreadoPor().getId().equals(usuarioId)) {
-             // throw new RuntimeException("No autorizado para editar este documento");
-             // Si quieres permitir edición admin, comenta la línea de arriba ^
-        }
-
         documento.setTitulo(documentoDTO.getTitulo());
         documento.setDescripcion(documentoDTO.getDescripcion());
 
-        // Actualizar condominio
         if (documentoDTO.getCondominioId() != null) {
             Condominio condominio = condominioRepository.findById(documentoDTO.getCondominioId().intValue())
                     .orElseThrow(() -> new RuntimeException("Condominio no encontrado"));
@@ -148,7 +189,6 @@ public class DocumentoService {
             documento.setCondominio(null);
         }
 
-        // Actualizar categoría
         if (documentoDTO.getCategoriaId() != null) {
             CategoriaDocumento categoria = categoriaDocumentoRepository.findById(documentoDTO.getCategoriaId())
                     .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
@@ -160,14 +200,11 @@ public class DocumentoService {
         documento.setEsPublico(documentoDTO.getEsPublico() != null ? documentoDTO.getEsPublico() : true);
         documento.setFechaVigencia(documentoDTO.getFechaVigencia());
 
-        // Si se sube un nuevo archivo
         if (archivo != null && !archivo.isEmpty()) {
-            // Validar tamaño
             if (archivo.getSize() > 10 * 1024 * 1024) {
                 throw new RuntimeException("El archivo es demasiado grande. Máximo 10MB");
             }
 
-            // Eliminar archivo anterior si existe
             if (documento.getRutaArchivo() != null) {
                 try {
                     Files.deleteIfExists(Paths.get(documento.getRutaArchivo()));
@@ -176,7 +213,6 @@ public class DocumentoService {
                 }
             }
 
-            // Guardar nuevo archivo
             Path uploadPath = getUploadPath();
             String nombreOriginal = archivo.getOriginalFilename();
             String extension = "";
@@ -200,47 +236,6 @@ public class DocumentoService {
         return convertirADTO(updated);
     }
 
-    // Obtener todos los documentos (para admin)
-    @Transactional(readOnly = true)
-    public List<DocumentoDTO> obtenerTodosDocumentos(Long condominioId, Long categoriaId) {
-        List<Documento> documentos;
-
-        if (condominioId != null && categoriaId != null) {
-            documentos = documentoRepository.findByCondominioAndCategoria(condominioId, categoriaId);
-        } else if (condominioId != null) {
-            documentos = documentoRepository.findByCondominioId(condominioId);
-        } else if (categoriaId != null) {
-            documentos = documentoRepository.findByCategoriaIdAndEsPublicoTrue(categoriaId);
-        } else {
-            documentos = documentoRepository.findAll();
-        }
-
-        return documentos.stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
-    }
-
-    // Obtener documentos públicos (para residentes)
-    @Transactional(readOnly = true)
-    public List<DocumentoDTO> obtenerDocumentosPublicos(Long condominioId, Long categoriaId) {
-        List<Documento> documentos;
-
-        if (condominioId != null) {
-            if (categoriaId != null) {
-                documentos = documentoRepository.findByCondominioAndCategoria(condominioId, categoriaId);
-            } else {
-                documentos = documentoRepository.findByCondominioIdAndEsPublicoTrue(condominioId);
-            }
-        } else {
-            documentos = documentoRepository.findByEsPublicoTrue();
-        }
-
-        return documentos.stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
-    }
-
-    // Obtener todas las categorías
     @Transactional(readOnly = true)
     public List<CategoriaDocumentoDTO> obtenerCategorias() {
         return categoriaDocumentoRepository.findAllByOrderByNombreAsc().stream()
@@ -248,10 +243,8 @@ public class DocumentoService {
                 .collect(Collectors.toList());
     }
 
-    // Crear categoría
     @Transactional
     public CategoriaDocumentoDTO crearCategoria(CategoriaDocumentoDTO categoriaDTO) {
-        // Verificar si ya existe
         if (categoriaDocumentoRepository.existsByNombreIgnoreCase(categoriaDTO.getNombre())) {
             throw new RuntimeException("Ya existe una categoría con ese nombre");
         }
@@ -265,14 +258,12 @@ public class DocumentoService {
         return convertirCategoriaADTO(saved);
     }
 
-    // Eliminar categoría
     @Transactional
     public void eliminarCategoria(Long categoriaId) {
         CategoriaDocumento categoria = categoriaDocumentoRepository.findById(categoriaId)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
-        // Verificar si hay documentos en esta categoría
-        List<Documento> documentosEnCategoria = documentoRepository.findByCategoriaIdAndEsPublicoTrue(categoriaId);
+        List<Documento> documentosEnCategoria = documentoRepository.findByCategoriaId(categoriaId);
         if (!documentosEnCategoria.isEmpty()) {
             throw new RuntimeException("No se puede eliminar la categoría porque tiene documentos asociados");
         }
@@ -280,7 +271,6 @@ public class DocumentoService {
         categoriaDocumentoRepository.delete(categoria);
     }
 
-    // Descargar documento
     @Transactional(readOnly = true)
     public byte[] descargarDocumento(Long documentoId) throws IOException {
         Documento documento = documentoRepository.findById(documentoId)
@@ -298,43 +288,23 @@ public class DocumentoService {
         return Files.readAllBytes(filePath);
     }
 
-    // --- SECCIÓN CORREGIDA ---
-    // Eliminar documento
     @Transactional
     public void eliminarDocumento(Long documentoId, Long usuarioId) {
         Documento documento = documentoRepository.findById(documentoId)
                 .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
 
-        /* * CORRECCIÓN 1: Se elimina o comenta la validación estricta de "CreadoPor".
-         * Esto permite que un Administrador pueda borrar cualquier documento,
-         * independientemente de quién lo subió.
-         */
-        /*
-        if (documento.getCreadoPor() == null || documento.getCreadoPor().getId() == null ||
-            !documento.getCreadoPor().getId().equals(usuarioId)) {
-            throw new RuntimeException("No autorizado para eliminar este documento");
-        }
-        */
-
-        // CORRECCIÓN 2: Manejo de errores seguro al borrar archivo físico
         try {
             if (documento.getRutaArchivo() != null) {
                 Path path = Paths.get(documento.getRutaArchivo());
-                // deleteIfExists devuelve true si lo borró, false si no existía
                 Files.deleteIfExists(path);
             }
         } catch (IOException e) {
-            // Logueamos el error pero NO lanzamos excepción.
-            // Esto permite que el registro se borre de la BD aunque falle el borrado del archivo.
-            System.err.println("⚠️ Advertencia: No se pudo borrar el archivo físico (posiblemente en uso o no encontrado): " + e.getMessage());
+            System.err.println("⚠️ Advertencia: No se pudo borrar el archivo físico: " + e.getMessage());
         }
 
-        // Finalmente borramos el registro de la base de datos
         documentoRepository.delete(documento);
     }
-    // --- FIN SECCIÓN CORREGIDA ---
 
-    // Convertir Documento a DTO
     private DocumentoDTO convertirADTO(Documento documento) {
         DocumentoDTO dto = new DocumentoDTO();
         dto.setId(documento.getId());
@@ -361,7 +331,6 @@ public class DocumentoService {
         return dto;
     }
 
-    // Convertir CategoriaDocumento a DTO
     private CategoriaDocumentoDTO convertirCategoriaADTO(CategoriaDocumento categoria) {
         CategoriaDocumentoDTO dto = new CategoriaDocumentoDTO();
         dto.setId(categoria.getId().longValue());
