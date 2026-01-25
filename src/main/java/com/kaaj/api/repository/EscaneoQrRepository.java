@@ -5,5 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface EscaneoQrRepository extends JpaRepository<EscaneoQr, Integer> {
-    List<EscaneoQr> findByVisitaIdOrderByFechaEscaneoDesc(Integer visitaId);
+    List<EscaneoQr> findByVisitaId(Integer visitaId);
+    List<EscaneoQr> findAllByOrderByFechaEscaneoDesc();
 }
