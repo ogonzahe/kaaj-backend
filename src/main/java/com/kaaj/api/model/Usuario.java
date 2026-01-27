@@ -42,10 +42,11 @@ public class Usuario {
     @Column(name = "numero_casa")
     private String numeroCasa;
 
-    // === RELACIÓN CON NOTIFICACIONES - CON ELIMINACIÓN EN CASCADA ===
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notificacion> notificaciones = new ArrayList<>();
-    // ===============================================================
 
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
@@ -56,7 +57,6 @@ public class Usuario {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
-    // Getters y Setters
     public Integer getId() {
         return id;
     }
@@ -137,7 +137,14 @@ public class Usuario {
         this.numeroCasa = numeroCasa;
     }
 
-    // === GETTER Y SETTER PARA NOTIFICACIONES ===
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
+    }
+
     public List<Notificacion> getNotificaciones() {
         return notificaciones;
     }
@@ -145,7 +152,6 @@ public class Usuario {
     public void setNotificaciones(List<Notificacion> notificaciones) {
         this.notificaciones = notificaciones;
     }
-    // ===========================================
 
     public LocalDateTime getCreadoEn() {
         return creadoEn;
@@ -171,7 +177,6 @@ public class Usuario {
         this.activo = activo;
     }
 
-    // MÉTODOS DE CONVENIENCIA
     public Integer getCondominioId() {
         return (condominio != null && condominio.getId() != null) ? condominio.getId() : null;
     }
@@ -221,7 +226,6 @@ public class Usuario {
                "COPROPIETARIO".equalsIgnoreCase(rolNombre);
     }
 
-    // MÉTODO PARA ACTUALIZAR TIMESTAMPS
     @PrePersist
     protected void onCreate() {
         creadoEn = LocalDateTime.now();
@@ -236,7 +240,6 @@ public class Usuario {
         actualizadoEn = LocalDateTime.now();
     }
 
-    // MÉTODO PARA VALIDACIÓN BÁSICA
     public boolean isValid() {
         return correo != null && !correo.trim().isEmpty() &&
                contrasena != null && !contrasena.trim().isEmpty();

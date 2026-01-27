@@ -69,7 +69,6 @@ public class PagoStripe {
     @Column(name = "referencia_factura")
     private String referenciaFactura;
 
-    // Getters y Setters
     public Integer getId() {
         return id;
     }
