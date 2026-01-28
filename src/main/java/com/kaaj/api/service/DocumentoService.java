@@ -52,7 +52,23 @@ public class DocumentoService {
         return path;
     }
 
-    // NUEVO MÉTODO: Obtener documentos para usuario normal
+    // NUEVO MÉTODO: Obtener categorías por condominio
+    @Transactional(readOnly = true)
+    public List<CategoriaDocumentoDTO> obtenerCategoriasPorCondominio(Long condominioId) {
+        List<CategoriaDocumento> categorias;
+
+        if (condominioId != null) {
+            categorias = categoriaDocumentoRepository.findByCondominioIdOrderByNombreAsc(condominioId);
+        } else {
+            // Si no se especifica condominio, devolver todas (para compatibilidad)
+            categorias = categoriaDocumentoRepository.findAllByOrderByNombreAsc();
+        }
+
+        return categorias.stream()
+                .map(this::convertirCategoriaADTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public List<DocumentoDTO> obtenerDocumentosParaUsuario(Long condominioUsuarioId, Long condominioFiltro, Long categoriaId) {
         List<Documento> documentos;
@@ -245,17 +261,53 @@ public class DocumentoService {
 
     @Transactional
     public CategoriaDocumentoDTO crearCategoria(CategoriaDocumentoDTO categoriaDTO) {
-        if (categoriaDocumentoRepository.existsByNombreIgnoreCase(categoriaDTO.getNombre())) {
-            throw new RuntimeException("Ya existe una categoría con ese nombre");
+        if (categoriaDTO.getCondominioId() == null) {
+            throw new RuntimeException("El condominio es requerido para crear una categoría");
         }
+
+        // Verificar si ya existe una categoría con el mismo nombre en este condominio
+        if (categoriaDocumentoRepository.existsByCondominioIdAndNombreIgnoreCase(
+                categoriaDTO.getCondominioId(), categoriaDTO.getNombre())) {
+            throw new RuntimeException("Ya existe una categoría con ese nombre en este condominio");
+        }
+
+        Condominio condominio = condominioRepository.findById(categoriaDTO.getCondominioId().intValue())
+                .orElseThrow(() -> new RuntimeException("Condominio no encontrado"));
 
         CategoriaDocumento categoria = new CategoriaDocumento();
         categoria.setNombre(categoriaDTO.getNombre());
         categoria.setDescripcion(categoriaDTO.getDescripcion());
         categoria.setColor(categoriaDTO.getColor() != null ? categoriaDTO.getColor() : "#3b82f6");
+        categoria.setCondominio(condominio);
 
         CategoriaDocumento saved = categoriaDocumentoRepository.save(categoria);
         return convertirCategoriaADTO(saved);
+    }
+
+    @Transactional
+    public CategoriaDocumentoDTO actualizarCategoria(Long categoriaId, CategoriaDocumentoDTO categoriaDTO) {
+        CategoriaDocumento categoria = categoriaDocumentoRepository.findById(categoriaId)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+
+        // Verificar si el nombre ya existe en el mismo condominio (excepto para esta categoría)
+        if (categoriaDTO.getNombre() != null && !categoriaDTO.getNombre().equals(categoria.getNombre())) {
+            if (categoriaDocumentoRepository.existsByCondominioIdAndNombreIgnoreCase(
+                    categoria.getCondominio().getId().longValue(), categoriaDTO.getNombre())) {
+                throw new RuntimeException("Ya existe una categoría con ese nombre en este condominio");
+            }
+            categoria.setNombre(categoriaDTO.getNombre());
+        }
+
+        if (categoriaDTO.getDescripcion() != null) {
+            categoria.setDescripcion(categoriaDTO.getDescripcion());
+        }
+
+        if (categoriaDTO.getColor() != null) {
+            categoria.setColor(categoriaDTO.getColor());
+        }
+
+        CategoriaDocumento updated = categoriaDocumentoRepository.save(categoria);
+        return convertirCategoriaADTO(updated);
     }
 
     @Transactional
@@ -333,10 +385,13 @@ public class DocumentoService {
 
     private CategoriaDocumentoDTO convertirCategoriaADTO(CategoriaDocumento categoria) {
         CategoriaDocumentoDTO dto = new CategoriaDocumentoDTO();
-        dto.setId(categoria.getId().longValue());
+        dto.setId(categoria.getId());
         dto.setNombre(categoria.getNombre());
         dto.setDescripcion(categoria.getDescripcion());
         dto.setColor(categoria.getColor());
+        if (categoria.getCondominio() != null) {
+            dto.setCondominioId(categoria.getCondominio().getId().longValue());
+        }
         return dto;
     }
 }

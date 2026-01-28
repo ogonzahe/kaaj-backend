@@ -3,7 +3,9 @@ package com.kaaj.api.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "categorias_documento")
+@Table(name = "categorias_documento", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"condominio_id", "nombre"})
+})
 public class CategoriaDocumento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,8 +17,12 @@ public class CategoriaDocumento {
     @Column(name = "descripcion")
     private String descripcion;
 
-    @Column(name = "color")
-    private String color;
+    @Column(name = "color", length = 7)
+    private String color = "#3b82f6";
+
+    @ManyToOne
+    @JoinColumn(name = "condominio_id", nullable = false)
+    private Condominio condominio;
 
     public CategoriaDocumento() {
     }
@@ -51,5 +57,13 @@ public class CategoriaDocumento {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public Condominio getCondominio() {
+        return condominio;
+    }
+
+    public void setCondominio(Condominio condominio) {
+        this.condominio = condominio;
     }
 }

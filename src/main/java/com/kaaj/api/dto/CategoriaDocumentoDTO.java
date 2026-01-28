@@ -1,12 +1,15 @@
 package com.kaaj.api.dto;
 
 public class CategoriaDocumentoDTO {
-    private Long id;  // CAMBIAR de Integer a Long
+    private Long id;
     private String nombre;
     private String descripcion;
     private String color;
+    private Long condominioId;
 
-    // Getters y setters
+    public CategoriaDocumentoDTO() {
+    }
+
     public Long getId() {
         return id;
     }
@@ -37,5 +40,13 @@ public class CategoriaDocumentoDTO {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public Long getCondominioId() {
+        return condominioId;
+    }
+
+    public void setCondominioId(Long condominioId) {
+        this.condominioId = condominioId;
     }
 }

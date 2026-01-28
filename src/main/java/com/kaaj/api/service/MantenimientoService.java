@@ -181,7 +181,12 @@ public class MantenimientoService {
             mantenimiento.getTituloReporte(),
             mantenimiento.getMensaje(),
             mantenimiento.getTipo() != null ? mantenimiento.getTipo().getDescripcion() : "Informativo",
-            mantenimiento.getEstatus() != null ? mantenimiento.getEstatus().getDescripcion() : "Pendiente"
+            mantenimiento.getEstatus() != null ? mantenimiento.getEstatus().getDescripcion() : "Pendiente",
+            mantenimiento.getUsuarioApartamento(),
+            mantenimiento.getCondominioId(),
+            mantenimiento.getUsuarioId(),
+            mantenimiento.getUbicacion(),
+            mantenimiento.getNumeroCasa()
         );
     }
 }

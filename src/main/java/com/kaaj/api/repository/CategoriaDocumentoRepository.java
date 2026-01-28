@@ -5,8 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface CategoriaDocumentoRepository extends JpaRepository<CategoriaDocumento, Long> {
+    List<CategoriaDocumento> findByCondominioIdOrderByNombreAsc(Long condominioId);
+    List<CategoriaDocumento> findByCondominioIdOrderByNombreAsc(Integer condominioId);
     List<CategoriaDocumento> findAllByOrderByNombreAsc();
 
-    // Agregar este método para verificar si existe por nombre
-    boolean existsByNombreIgnoreCase(String nombre);
+    // Verificar si existe por nombre y condominio
+    boolean existsByCondominioIdAndNombreIgnoreCase(Long condominioId, String nombre);
+    boolean existsByCondominioIdAndNombreIgnoreCase(Integer condominioId, String nombre);
 }

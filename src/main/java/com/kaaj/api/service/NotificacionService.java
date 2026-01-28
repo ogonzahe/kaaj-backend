@@ -53,16 +53,18 @@ public class NotificacionService {
         List<Notificacion> notificacionesCreadas = new ArrayList<>();
 
         for (Condominio condominio : condominiosDestino) {
-            if (dto.getUsuarioId() != null) {
+            if (dto.getUsuarioId() != null && dto.getUsuarioId() > 0) {
                 // Notificación para usuario específico
                 Notificacion notificacion = crearNotificacionUsuarioEspecifico(dto, condominio);
                 if (notificacion != null) {
                     notificacionesCreadas.add(notificacion);
                 }
             } else {
-                // Notificación para todos los usuarios del condominio
-                List<Notificacion> notifs = crearNotificacionParaCondominio(dto, condominio);
-                notificacionesCreadas.addAll(notifs);
+                // Notificación para TODO el condominio (UNA sola notificación)
+                Notificacion notificacion = crearNotificacionParaCondominio(dto, condominio);
+                if (notificacion != null) {
+                    notificacionesCreadas.add(notificacion);
+                }
             }
         }
 
@@ -136,6 +138,12 @@ public class NotificacionService {
             throw new RuntimeException("El usuario destino no pertenece al condominio: " + condominio.getNombre());
         }
 
+        // Verificar que el usuario NO es admin (rol_id 1 o 4)
+        Integer rolId = usuarioDestino.getRolId();
+        if (rolId != null && (rolId == 1 || rolId == 4)) {
+            throw new RuntimeException("No se pueden enviar notificaciones a administradores o COPOs");
+        }
+
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(usuarioDestino);
         notificacion.setCondominio(condominio);
@@ -148,28 +156,33 @@ public class NotificacionService {
         return notificacionRepository.save(notificacion);
     }
 
-    private List<Notificacion> crearNotificacionParaCondominio(NotificacionRequestDTO dto, Condominio condominio) {
+    private Notificacion crearNotificacionParaCondominio(NotificacionRequestDTO dto, Condominio condominio) {
+        // Obtener todos los usuarios del condominio
         List<Usuario> usuariosCondominio = usuarioRepository.findByCondominioId(condominio.getId());
-        List<Notificacion> notificacionesCreadas = new ArrayList<>();
 
-        if (usuariosCondominio.isEmpty()) {
-            throw new RuntimeException("No hay usuarios en el condominio: " + condominio.getNombre());
+        // Filtrar solo usuarios con rol_id 2 (USUARIO) o 3 (SEGURIDAD)
+        List<Usuario> usuariosPermitidos = usuariosCondominio.stream()
+                .filter(usuario -> {
+                    Integer rolId = usuario.getRolId();
+                    return rolId != null && (rolId == 2 || rolId == 3); // USUARIO (2) o SEGURIDAD (3)
+                })
+                .collect(Collectors.toList());
+
+        if (usuariosPermitidos.isEmpty()) {
+            throw new RuntimeException("No hay residentes o personal de seguridad en el condominio: " + condominio.getNombre());
         }
 
-        for (Usuario usuario : usuariosCondominio) {
-            Notificacion notificacion = new Notificacion();
-            notificacion.setUsuario(usuario);
-            notificacion.setCondominio(condominio);
-            notificacion.setTitulo(dto.getTitulo());
-            notificacion.setDescripcion(dto.getDescripcion());
-            notificacion.setPrioridad(dto.getPrioridad() != null ? dto.getPrioridad() : "INFORMATIVO");
-            notificacion.setLeida(false);
-            notificacion.setCreadaEn(new Timestamp(System.currentTimeMillis()));
+        // Crear UNA sola notificación para todo el condominio
+        Notificacion notificacion = new Notificacion();
+        notificacion.setUsuario(null); // null = notificación general para todo el condominio
+        notificacion.setCondominio(condominio);
+        notificacion.setTitulo(dto.getTitulo());
+        notificacion.setDescripcion(dto.getDescripcion());
+        notificacion.setPrioridad(dto.getPrioridad() != null ? dto.getPrioridad() : "INFORMATIVO");
+        notificacion.setLeida(false);
+        notificacion.setCreadaEn(new Timestamp(System.currentTimeMillis()));
 
-            notificacionesCreadas.add(notificacionRepository.save(notificacion));
-        }
-
-        return notificacionesCreadas;
+        return notificacionRepository.save(notificacion);
     }
 
     // ========== OBTENER NOTIFICACIONES ==========

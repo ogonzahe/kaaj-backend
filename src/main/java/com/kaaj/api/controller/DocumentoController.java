@@ -271,9 +271,15 @@ public class DocumentoController {
     // ========== ENDPOINTS PARA CATEGORÍAS ==========
 
     @GetMapping("/documentos/categorias")
-    public ResponseEntity<?> obtenerCategorias() {
+    public ResponseEntity<?> obtenerCategorias(
+            @RequestParam(value = "condominioId", required = false) Long condominioId) {
         try {
-            List<CategoriaDocumentoDTO> categorias = documentoService.obtenerCategorias();
+            System.out.println("=== OBTENIENDO CATEGORÍAS ===");
+            System.out.println("condominioId: " + condominioId);
+
+            List<CategoriaDocumentoDTO> categorias = documentoService.obtenerCategoriasPorCondominio(condominioId);
+
+            System.out.println("Categorías encontradas: " + categorias.size());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -282,6 +288,8 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("ERROR al obtener categorías: " + e.getMessage());
+            e.printStackTrace();
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Error al obtener categorías: " + e.getMessage());
@@ -292,6 +300,10 @@ public class DocumentoController {
     @PostMapping("/documentos/categorias")
     public ResponseEntity<?> crearCategoria(@RequestBody CategoriaDocumentoDTO categoriaDTO) {
         try {
+            System.out.println("=== CREANDO CATEGORÍA ===");
+            System.out.println("Nombre: " + categoriaDTO.getNombre());
+            System.out.println("CondominioId: " + categoriaDTO.getCondominioId());
+
             CategoriaDocumentoDTO creada = documentoService.crearCategoria(categoriaDTO);
 
             Map<String, Object> response = new HashMap<>();
@@ -302,6 +314,8 @@ public class DocumentoController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (Exception e) {
+            System.err.println("ERROR al crear categoría: " + e.getMessage());
+            e.printStackTrace();
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Error al crear categoría: " + e.getMessage());
@@ -309,9 +323,38 @@ public class DocumentoController {
         }
     }
 
+    @PutMapping("/documentos/categorias/{id}")
+    public ResponseEntity<?> actualizarCategoria(@PathVariable Long id, @RequestBody CategoriaDocumentoDTO categoriaDTO) {
+        try {
+            System.out.println("=== ACTUALIZANDO CATEGORÍA ===");
+            System.out.println("ID: " + id);
+            System.out.println("Nombre: " + categoriaDTO.getNombre());
+
+            CategoriaDocumentoDTO actualizada = documentoService.actualizarCategoria(id, categoriaDTO);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Categoría actualizada exitosamente");
+            response.put("categoria", actualizada);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("ERROR al actualizar categoría: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al actualizar categoría: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     @DeleteMapping("/documentos/categorias/{id}")
     public ResponseEntity<?> eliminarCategoria(@PathVariable Long id) {
         try {
+            System.out.println("=== ELIMINANDO CATEGORÍA ===");
+            System.out.println("ID: " + id);
+
             documentoService.eliminarCategoria(id);
 
             Map<String, Object> response = new HashMap<>();
@@ -321,6 +364,8 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("ERROR al eliminar categoría: " + e.getMessage());
+            e.printStackTrace();
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Error al eliminar categoría: " + e.getMessage());
