@@ -1,7 +1,11 @@
 package com.kaaj.api.service;
 
 import com.kaaj.api.dto.FinanzasDTO;
+import com.kaaj.api.model.Ingreso;
+import com.kaaj.api.model.Egreso;
 import com.kaaj.api.model.Saldo;
+import com.kaaj.api.repository.IngresoRepository;
+import com.kaaj.api.repository.EgresoRepository;
 import com.kaaj.api.repository.SaldoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,6 +26,12 @@ public class FinanzasService {
 
     @Autowired
     private SaldoRepository saldoRepository;
+
+    @Autowired
+    private IngresoRepository ingresoRepository;
+
+    @Autowired
+    private EgresoRepository egresoRepository;
 
     @Transactional(readOnly = true)
     public Map<String, Object> getResumenFinanciero(Long condominioId, LocalDate fechaInicio, LocalDate fechaFin) {
@@ -126,6 +136,91 @@ public class FinanzasService {
 
     @Transactional(readOnly = true)
     public List<FinanzasDTO> getEstadisticasPorPeriodo(Long condominioId, String periodo, int rango) {
+        return getEstadisticasPorPeriodo(condominioId, periodo, rango, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FinanzasDTO> getEstadisticasPorPeriodo(Long condominioId, String periodo, int rango, Integer año,
+            Integer mes) {
+        List<FinanzasDTO> estadisticas = new ArrayList<>();
+
+        if ("mes".equals(periodo) && año != null && mes != null) {
+            return getEstadisticasMensuales(condominioId, año, mes, rango);
+        } else if ("anual".equals(periodo) && año != null) {
+            return getEstadisticasAnuales(condominioId, año);
+        } else if ("3meses".equals(periodo) || "6meses".equals(periodo) || "12meses".equals(periodo)) {
+            return getEstadisticasUltimosMeses(condominioId, rango);
+        }
+
+        return getEstadisticasDefault(condominioId, periodo, rango);
+    }
+
+    private List<FinanzasDTO> getEstadisticasMensuales(Long condominioId, Integer año, Integer mes, int rango) {
+        List<FinanzasDTO> estadisticas = new ArrayList<>();
+        int mesInicio = Math.max(1, mes - rango + 1);
+
+        for (int m = mesInicio; m <= mes; m++) {
+            FinanzasDTO dto = new FinanzasDTO();
+            dto.setPeriodo(getNombreMes(m));
+
+            BigDecimal ingresos = ingresoRepository.calcularTotalPorMes(condominioId, año, m);
+            BigDecimal egresos = egresoRepository.calcularTotalPorMes(condominioId, año, m);
+
+            dto.setIngresos(ingresos != null ? ingresos : BigDecimal.ZERO);
+            dto.setEgresos(egresos != null ? egresos : BigDecimal.ZERO);
+
+            estadisticas.add(dto);
+        }
+
+        return estadisticas;
+    }
+
+    private List<FinanzasDTO> getEstadisticasAnuales(Long condominioId, Integer año) {
+        List<FinanzasDTO> estadisticas = new ArrayList<>();
+
+        for (int m = 1; m <= 12; m++) {
+            FinanzasDTO dto = new FinanzasDTO();
+            dto.setPeriodo(getNombreMes(m));
+
+            BigDecimal ingresos = ingresoRepository.calcularTotalPorMes(condominioId, año, m);
+            BigDecimal egresos = egresoRepository.calcularTotalPorMes(condominioId, año, m);
+
+            dto.setIngresos(ingresos != null ? ingresos : BigDecimal.ZERO);
+            dto.setEgresos(egresos != null ? egresos : BigDecimal.ZERO);
+
+            estadisticas.add(dto);
+        }
+
+        return estadisticas;
+    }
+
+    private List<FinanzasDTO> getEstadisticasUltimosMeses(Long condominioId, int rango) {
+        List<FinanzasDTO> estadisticas = new ArrayList<>();
+        LocalDate ahora = LocalDate.now();
+        int añoActual = ahora.getYear();
+        int mesActual = ahora.getMonthValue();
+
+        for (int i = rango - 1; i >= 0; i--) {
+            YearMonth ym = YearMonth.of(añoActual, mesActual).minusMonths(i);
+            int año = ym.getYear();
+            int mes = ym.getMonthValue();
+
+            FinanzasDTO dto = new FinanzasDTO();
+            dto.setPeriodo(getNombreMes(mes));
+
+            BigDecimal ingresos = ingresoRepository.calcularTotalPorMes(condominioId, año, mes);
+            BigDecimal egresos = egresoRepository.calcularTotalPorMes(condominioId, año, mes);
+
+            dto.setIngresos(ingresos != null ? ingresos : BigDecimal.ZERO);
+            dto.setEgresos(egresos != null ? egresos : BigDecimal.ZERO);
+
+            estadisticas.add(dto);
+        }
+
+        return estadisticas;
+    }
+
+    private List<FinanzasDTO> getEstadisticasDefault(Long condominioId, String periodo, int rango) {
         List<FinanzasDTO> estadisticas = new ArrayList<>();
         LocalDate fechaActual = LocalDate.now();
         DateTimeFormatter formatter;
@@ -166,6 +261,11 @@ public class FinanzasService {
         }
 
         return estadisticas;
+    }
+
+    private String getNombreMes(int mes) {
+        String[] meses = { "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic" };
+        return meses[mes - 1];
     }
 
     @Transactional(readOnly = true)
@@ -227,108 +327,168 @@ public class FinanzasService {
                 .collect(Collectors.toList());
     }
 
-    // ========== NUEVOS MÉTODOS PARA CONTRALORÍA ==========
+    // ========== MÉTODOS NUEVOS PARA LAS NUEVAS TABLAS ==========
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getIngresosDetalladosNuevo(Long condominioId, Integer año, Integer mes,
+            String periodo) {
+        List<Ingreso> ingresos;
+
+        if (año != null && mes != null) {
+            ingresos = ingresoRepository.findByCondominioIdAndAñoAndMes(condominioId, año, mes);
+        } else if (año != null) {
+            ingresos = ingresoRepository.findByCondominioIdAndAño(condominioId, año);
+        } else {
+            ingresos = ingresoRepository.findByCondominioId(condominioId);
+        }
+
+        return ingresos.stream()
+                .map(ingreso -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", ingreso.getId());
+                    map.put("concepto", ingreso.getConcepto());
+                    map.put("monto", ingreso.getMonto());
+                    map.put("fecha", ingreso.getFecha());
+                    map.put("mes", ingreso.getMes());
+                    map.put("año", ingreso.getAño());
+                    if (ingreso.getCategoria() != null) {
+                        map.put("categoria", ingreso.getCategoria().getNombre());
+                        map.put("color", ingreso.getCategoria().getColor());
+                    }
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getEgresosDetalladosNuevo(Long condominioId, Integer año, Integer mes,
+            String periodo) {
+        List<Egreso> egresos;
+
+        if (año != null && mes != null) {
+            egresos = egresoRepository.findByCondominioIdAndAñoAndMes(condominioId, año, mes);
+        } else if (año != null) {
+            egresos = egresoRepository.findByCondominioIdAndAño(condominioId, año);
+        } else {
+            egresos = egresoRepository.findByCondominioId(condominioId);
+        }
+
+        return egresos.stream()
+                .map(egreso -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", egreso.getId());
+                    map.put("concepto", egreso.getConcepto());
+                    map.put("monto", egreso.getMonto());
+                    map.put("fecha", egreso.getFecha());
+                    map.put("mes", egreso.getMes());
+                    map.put("año", egreso.getAño());
+                    if (egreso.getCategoria() != null) {
+                        map.put("categoria", egreso.getCategoria().getNombre());
+                        map.put("color", egreso.getCategoria().getColor());
+                    }
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getMesesDisponibles(Long condominioId) {
         List<Saldo> todosSaldos = condominioId != null
-            ? saldoRepository.findByUsuarioCondominioId(condominioId)
-            : saldoRepository.findAll();
+                ? saldoRepository.findByUsuarioCondominioId(condominioId)
+                : saldoRepository.findAll();
 
-        // Extraer meses únicos con datos
         Set<YearMonth> mesesSet = todosSaldos.stream()
-            .filter(saldo -> saldo.getFechaLimite() != null)
-            .map(saldo -> YearMonth.from(saldo.getFechaLimite()))
-            .collect(Collectors.toSet());
+                .filter(saldo -> saldo.getFechaLimite() != null)
+                .map(saldo -> YearMonth.from(saldo.getFechaLimite()))
+                .collect(Collectors.toSet());
 
-        // Convertir a lista ordenada
         return mesesSet.stream()
-            .sorted(Comparator.reverseOrder())
-            .map(yearMonth -> {
-                Map<String, Object> mesData = new HashMap<>();
-                mesData.put("id", yearMonth.hashCode());
-                mesData.put("año", yearMonth.getYear());
-                mesData.put("mes", yearMonth.getMonthValue());
-                mesData.put("nombre", yearMonth.getMonth().getDisplayName(
-                    java.time.format.TextStyle.FULL,
-                    new Locale("es", "MX")
-                ));
-                mesData.put("value", String.format("%d-%02d",
-                    yearMonth.getYear(),
-                    yearMonth.getMonthValue()));
+                .sorted(Comparator.reverseOrder())
+                .map(yearMonth -> {
+                    Map<String, Object> mesData = new HashMap<>();
+                    mesData.put("id", yearMonth.hashCode());
+                    mesData.put("año", yearMonth.getYear());
+                    mesData.put("mes", yearMonth.getMonthValue());
+                    mesData.put("nombre", yearMonth.getMonth().getDisplayName(
+                            java.time.format.TextStyle.FULL,
+                            new Locale("es", "MX")));
+                    mesData.put("value", String.format("%d-%02d",
+                            yearMonth.getYear(),
+                            yearMonth.getMonthValue()));
 
-                // Verificar si el mes está completo
-                long ingresosCount = todosSaldos.stream()
-                    .filter(s -> YearMonth.from(s.getFechaLimite()).equals(yearMonth)
-                        && s.getMonto().compareTo(BigDecimal.ZERO) > 0
-                        && s.getPagado())
-                    .count();
-                long egresosCount = todosSaldos.stream()
-                    .filter(s -> YearMonth.from(s.getFechaLimite()).equals(yearMonth)
-                        && s.getMonto().compareTo(BigDecimal.ZERO) > 0
-                        && !s.getPagado())
-                    .count();
+                    long ingresosCount = todosSaldos.stream()
+                            .filter(s -> YearMonth.from(s.getFechaLimite()).equals(yearMonth)
+                                    && s.getMonto().compareTo(BigDecimal.ZERO) > 0
+                                    && s.getPagado())
+                            .count();
+                    long egresosCount = todosSaldos.stream()
+                            .filter(s -> YearMonth.from(s.getFechaLimite()).equals(yearMonth)
+                                    && s.getMonto().compareTo(BigDecimal.ZERO) > 0
+                                    && !s.getPagado())
+                            .count();
 
-                mesData.put("completo", ingresosCount > 0 && egresosCount > 0);
-                return mesData;
-            })
-            .collect(Collectors.toList());
+                    mesData.put("completo", ingresosCount > 0 && egresosCount > 0);
+                    return mesData;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getIngresosDetallados(Long condominioId, LocalDate fechaInicio, LocalDate fechaFin) {
+    public List<Map<String, Object>> getIngresosDetallados(Long condominioId, LocalDate fechaInicio,
+            LocalDate fechaFin) {
         List<Object[]> resultados = condominioId != null
-            ? saldoRepository.findIngresosByCondominioAndFecha(condominioId, fechaInicio, fechaFin)
-            : saldoRepository.findIngresosByFecha(fechaInicio, fechaFin);
+                ? saldoRepository.findIngresosByCondominioAndFecha(condominioId, fechaInicio, fechaFin)
+                : saldoRepository.findIngresosByFecha(fechaInicio, fechaFin);
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> ingreso = new HashMap<>();
-                ingreso.put("id", result[0]);
-                ingreso.put("concepto", result[1]);
-                ingreso.put("descripcion", result[2]);
-                ingreso.put("monto", result[3]);
-                ingreso.put("fecha", result[4]);
+                .map(result -> {
+                    Map<String, Object> ingreso = new HashMap<>();
+                    ingreso.put("id", result[0]);
+                    ingreso.put("concepto", result[1]);
+                    ingreso.put("descripcion", result[2]);
+                    ingreso.put("monto", result[3]);
+                    ingreso.put("fecha", result[4]);
 
-                if (result[4] != null) {
-                    LocalDate fecha = (LocalDate) result[4];
-                    ingreso.put("mes", fecha.getMonthValue());
-                    ingreso.put("año", fecha.getYear());
-                }
+                    if (result[4] != null) {
+                        LocalDate fecha = (LocalDate) result[4];
+                        ingreso.put("mes", fecha.getMonthValue());
+                        ingreso.put("año", fecha.getYear());
+                    }
 
-                ingreso.put("usuario", result[5]);
-                ingreso.put("comprobante", result[6]);
-                return ingreso;
-            })
-            .collect(Collectors.toList());
+                    ingreso.put("usuario", result[5]);
+                    ingreso.put("comprobante", result[6]);
+                    return ingreso;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getEgresosDetallados(Long condominioId, LocalDate fechaInicio, LocalDate fechaFin) {
+    public List<Map<String, Object>> getEgresosDetallados(Long condominioId, LocalDate fechaInicio,
+            LocalDate fechaFin) {
         List<Object[]> resultados = condominioId != null
-            ? saldoRepository.findEgresosByCondominioAndFecha(condominioId, fechaInicio, fechaFin)
-            : saldoRepository.findEgresosByFecha(fechaInicio, fechaFin);
+                ? saldoRepository.findEgresosByCondominioAndFecha(condominioId, fechaInicio, fechaFin)
+                : saldoRepository.findEgresosByFecha(fechaInicio, fechaFin);
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> egreso = new HashMap<>();
-                egreso.put("id", result[0]);
-                egreso.put("concepto", result[1]);
-                egreso.put("descripcion", result[2]);
-                egreso.put("monto", result[3]);
-                egreso.put("fecha", result[4]);
+                .map(result -> {
+                    Map<String, Object> egreso = new HashMap<>();
+                    egreso.put("id", result[0]);
+                    egreso.put("concepto", result[1]);
+                    egreso.put("descripcion", result[2]);
+                    egreso.put("monto", result[3]);
+                    egreso.put("fecha", result[4]);
 
-                if (result[4] != null) {
-                    LocalDate fecha = (LocalDate) result[4];
-                    egreso.put("mes", fecha.getMonthValue());
-                    egreso.put("año", fecha.getYear());
-                }
+                    if (result[4] != null) {
+                        LocalDate fecha = (LocalDate) result[4];
+                        egreso.put("mes", fecha.getMonthValue());
+                        egreso.put("año", fecha.getYear());
+                    }
 
-                egreso.put("proveedor", result[5]);
-                egreso.put("comprobante", result[6]);
-                return egreso;
-            })
-            .collect(Collectors.toList());
+                    egreso.put("proveedor", result[5]);
+                    egreso.put("comprobante", result[6]);
+                    return egreso;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -342,24 +502,25 @@ public class FinanzasService {
             LocalDate finMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
 
             BigDecimal totalIngresos = condominioId != null
-                ? saldoRepository.calcularIngresosCondominio(condominioId, inicioMes, finMes)
-                : saldoRepository.calcularIngresosTotales(inicioMes, finMes);
+                    ? saldoRepository.calcularIngresosCondominio(condominioId, inicioMes, finMes)
+                    : saldoRepository.calcularIngresosTotales(inicioMes, finMes);
 
             BigDecimal totalEgresos = condominioId != null
-                ? saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes)
-                : saldoRepository.calcularEgresosTotales(inicioMes, finMes);
+                    ? saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes)
+                    : saldoRepository.calcularEgresosTotales(inicioMes, finMes);
 
-            if (totalIngresos == null) totalIngresos = BigDecimal.ZERO;
-            if (totalEgresos == null) totalEgresos = BigDecimal.ZERO;
+            if (totalIngresos == null)
+                totalIngresos = BigDecimal.ZERO;
+            if (totalEgresos == null)
+                totalEgresos = BigDecimal.ZERO;
 
-            // Contar transacciones
             long countIngresos = condominioId != null
-                ? saldoRepository.countIngresosCondominio(condominioId, inicioMes, finMes)
-                : saldoRepository.countIngresosTotales(inicioMes, finMes);
+                    ? saldoRepository.countIngresosCondominio(condominioId, inicioMes, finMes)
+                    : saldoRepository.countIngresosTotales(inicioMes, finMes);
 
             long countEgresos = condominioId != null
-                ? saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes)
-                : saldoRepository.countEgresosTotales(inicioMes, finMes);
+                    ? saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes)
+                    : saldoRepository.countEgresosTotales(inicioMes, finMes);
 
             Map<String, Object> mesData = new HashMap<>();
             mesData.put("mes", month);
@@ -369,9 +530,8 @@ public class FinanzasService {
             mesData.put("balance", totalIngresos.subtract(totalEgresos));
             mesData.put("cantidadTransacciones", countIngresos + countEgresos);
             mesData.put("nombreMes", inicioMes.getMonth().getDisplayName(
-                java.time.format.TextStyle.FULL,
-                new Locale("es", "MX")
-            ));
+                    java.time.format.TextStyle.FULL,
+                    new Locale("es", "MX")));
 
             resumenMensual.add(mesData);
         }
@@ -400,15 +560,15 @@ public class FinanzasService {
         List<Object[]> resultados = saldoRepository.findTop5Ingresos();
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> ingreso = new HashMap<>();
-                ingreso.put("concepto", result[0]);
-                ingreso.put("monto", result[1]);
-                ingreso.put("fecha", result[2]);
-                ingreso.put("usuario", result[3]);
-                return ingreso;
-            })
-            .collect(Collectors.toList());
+                .map(result -> {
+                    Map<String, Object> ingreso = new HashMap<>();
+                    ingreso.put("concepto", result[0]);
+                    ingreso.put("monto", result[1]);
+                    ingreso.put("fecha", result[2]);
+                    ingreso.put("usuario", result[3]);
+                    return ingreso;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -416,36 +576,36 @@ public class FinanzasService {
         List<Object[]> resultados = saldoRepository.findTop5Egresos();
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> egreso = new HashMap<>();
-                egreso.put("concepto", result[0]);
-                egreso.put("monto", result[1]);
-                egreso.put("fecha", result[2]);
-                egreso.put("usuario", result[3]);
-                return egreso;
-            })
-            .collect(Collectors.toList());
+                .map(result -> {
+                    Map<String, Object> egreso = new HashMap<>();
+                    egreso.put("concepto", result[0]);
+                    egreso.put("monto", result[1]);
+                    egreso.put("fecha", result[2]);
+                    egreso.put("usuario", result[3]);
+                    return egreso;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getSaldosVencidos(Long condominioId) {
         List<Saldo> saldos = condominioId != null
-            ? saldoRepository.findSaldosVencidosByCondominio(condominioId)
-            : saldoRepository.findSaldosVencidos();
+                ? saldoRepository.findSaldosVencidosByCondominio(condominioId)
+                : saldoRepository.findSaldosVencidos();
 
         return saldos.stream()
-            .map(saldo -> {
-                Map<String, Object> saldoMap = new HashMap<>();
-                saldoMap.put("id", saldo.getId());
-                saldoMap.put("concepto", saldo.getConcepto());
-                saldoMap.put("descripcion", saldo.getDescripcion());
-                saldoMap.put("monto", saldo.getMonto());
-                saldoMap.put("fechaLimite", saldo.getFechaLimite());
-                saldoMap.put("diasVencido", LocalDate.now().toEpochDay() - saldo.getFechaLimite().toEpochDay());
-                saldoMap.put("usuario", saldo.getUsuario().getNombre());
-                return saldoMap;
-            })
-            .collect(Collectors.toList());
+                .map(saldo -> {
+                    Map<String, Object> saldoMap = new HashMap<>();
+                    saldoMap.put("id", saldo.getId());
+                    saldoMap.put("concepto", saldo.getConcepto());
+                    saldoMap.put("descripcion", saldo.getDescripcion());
+                    saldoMap.put("monto", saldo.getMonto());
+                    saldoMap.put("fechaLimite", saldo.getFechaLimite());
+                    saldoMap.put("diasVencido", LocalDate.now().toEpochDay() - saldo.getFechaLimite().toEpochDay());
+                    saldoMap.put("usuario", saldo.getUsuario().getNombre());
+                    return saldoMap;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -453,16 +613,16 @@ public class FinanzasService {
         List<Object[]> resultados = saldoRepository.findResumenPorAño();
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> resumen = new HashMap<>();
-                resumen.put("año", result[0]);
-                resumen.put("ingresos", result[1]);
-                resumen.put("egresos", result[2]);
-                resumen.put("countIngresos", result[3]);
-                resumen.put("countEgresos", result[4]);
-                return resumen;
-            })
-            .collect(Collectors.toList());
+                .map(result -> {
+                    Map<String, Object> resumen = new HashMap<>();
+                    resumen.put("año", result[0]);
+                    resumen.put("ingresos", result[1]);
+                    resumen.put("egresos", result[2]);
+                    resumen.put("countIngresos", result[3]);
+                    resumen.put("countEgresos", result[4]);
+                    return resumen;
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -470,13 +630,13 @@ public class FinanzasService {
         List<Object[]> resultados = saldoRepository.findTotalesPorMes(año);
 
         return resultados.stream()
-            .map(result -> {
-                Map<String, Object> totalMes = new HashMap<>();
-                totalMes.put("mes", result[0]);
-                totalMes.put("ingresos", result[1]);
-                totalMes.put("egresos", result[2]);
-                return totalMes;
-            })
-            .collect(Collectors.toList());
+                .map(result -> {
+                    Map<String, Object> totalMes = new HashMap<>();
+                    totalMes.put("mes", result[0]);
+                    totalMes.put("ingresos", result[1]);
+                    totalMes.put("egresos", result[2]);
+                    return totalMes;
+                })
+                .collect(Collectors.toList());
     }
 }
