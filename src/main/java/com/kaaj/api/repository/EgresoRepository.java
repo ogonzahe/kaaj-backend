@@ -10,23 +10,28 @@ import java.util.List;
 public interface EgresoRepository extends JpaRepository<Egreso, Long> {
     List<Egreso> findByCondominioId(Long condominioId);
 
-    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.año = :año ORDER BY e.mes, e.fecha")
+    // CAMBIO: usar "e.anio" en lugar de "e.año"
+    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.anio = :año ORDER BY e.mes, e.fecha")
     List<Egreso> findByCondominioIdAndAño(@Param("condominioId") Long condominioId, @Param("año") Integer año);
 
-    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.año = :año AND e.mes = :mes ORDER BY e.fecha")
+    // CAMBIO: usar "e.anio" en lugar de "e.año"
+    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.anio = :año AND e.mes = :mes ORDER BY e.fecha")
     List<Egreso> findByCondominioIdAndAñoAndMes(@Param("condominioId") Long condominioId,
             @Param("año") Integer año,
             @Param("mes") Integer mes);
 
-    @Query("SELECT COALESCE(SUM(e.monto), 0) FROM Egreso e WHERE e.condominio.id = :condominioId AND e.año = :año AND e.mes = :mes")
+    // CAMBIO: usar "e.anio" en lugar de "e.año"
+    @Query("SELECT COALESCE(SUM(e.monto), 0) FROM Egreso e WHERE e.condominio.id = :condominioId AND e.anio = :año AND e.mes = :mes")
     BigDecimal calcularTotalPorMes(@Param("condominioId") Long condominioId,
             @Param("año") Integer año,
             @Param("mes") Integer mes);
 
-    @Query("SELECT COALESCE(SUM(e.monto), 0) FROM Egreso e WHERE e.condominio.id = :condominioId AND e.año = :año")
+    // CAMBIO: usar "e.anio" en lugar de "e.año"
+    @Query("SELECT COALESCE(SUM(e.monto), 0) FROM Egreso e WHERE e.condominio.id = :condominioId AND e.anio = :año")
     BigDecimal calcularTotalPorAño(@Param("condominioId") Long condominioId, @Param("año") Integer año);
 
-    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.año = :año ORDER BY e.mes DESC")
+    // CAMBIO: usar "e.anio" en lugar de "e.año"
+    @Query("SELECT e FROM Egreso e WHERE e.condominio.id = :condominioId AND e.anio = :año ORDER BY e.mes DESC")
     List<Egreso> findUltimosMeses(@Param("condominioId") Long condominioId, @Param("año") Integer año,
             org.springframework.data.domain.Pageable pageable);
 }

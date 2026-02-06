@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -17,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "http://localhost:5173")
+// ELIMINADO: @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/finanzas")
 public class FinanzasController {
@@ -30,6 +31,229 @@ public class FinanzasController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @GetMapping("/ingresos")
+    public ResponseEntity<?> getAllIngresos() {
+        try {
+            System.out.println("GET /api/finanzas/ingresos llamado");
+
+            Map<String, Object> result = finanzasService.getAllIngresosCompletos();
+
+            List<Map<String, Object>> ingresos = new ArrayList<>();
+            if (result != null && result.containsKey("data")) {
+                ingresos = (List<Map<String, Object>>) result.get("data");
+            }
+
+            System.out.println("Ingresos encontrados: " + ingresos.size());
+
+            if (!ingresos.isEmpty() && ingresos.get(0) != null) {
+                Map<String, Object> primerIngreso = ingresos.get(0);
+                System.out.println("Estructura del primer ingreso:");
+                for (Map.Entry<String, Object> entry : primerIngreso.entrySet()) {
+                    System.out.println("  " + entry.getKey() + ": " + entry.getValue() +
+                            " (Tipo: " + (entry.getValue() != null ? entry.getValue().getClass().getSimpleName() : "null") + ")");
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", ingresos);
+            response.put("total", ingresos.size());
+
+            BigDecimal totalMonto = BigDecimal.ZERO;
+            for (Map<String, Object> ingreso : ingresos) {
+                if (ingreso != null && ingreso.get("monto") != null) {
+                    Object montoObj = ingreso.get("monto");
+                    try {
+                        if (montoObj instanceof BigDecimal) {
+                            totalMonto = totalMonto.add((BigDecimal) montoObj);
+                        } else if (montoObj instanceof Number) {
+                            totalMonto = totalMonto.add(BigDecimal.valueOf(((Number) montoObj).doubleValue()));
+                        } else if (montoObj instanceof String) {
+                            totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error al procesar monto: " + montoObj + " - " + e.getMessage());
+                    }
+                }
+            }
+            response.put("totalMonto", totalMonto);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en GET /api/finanzas/ingresos: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener todos los ingresos: " + e.getMessage());
+            error.put("errorDetails", e.toString());
+            error.put("stackTrace", Arrays.toString(e.getStackTrace()));
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @GetMapping("/egresos")
+    public ResponseEntity<?> getAllEgresos() {
+        try {
+            System.out.println("GET /api/finanzas/egresos llamado");
+
+            Map<String, Object> result = finanzasService.getAllEgresosCompletos();
+
+            List<Map<String, Object>> egresos = new ArrayList<>();
+            if (result != null && result.containsKey("data")) {
+                egresos = (List<Map<String, Object>>) result.get("data");
+            }
+
+            System.out.println("Egresos encontrados: " + egresos.size());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", egresos);
+            response.put("total", egresos.size());
+
+            BigDecimal totalMonto = BigDecimal.ZERO;
+            for (Map<String, Object> egreso : egresos) {
+                if (egreso != null && egreso.get("monto") != null) {
+                    Object montoObj = egreso.get("monto");
+                    try {
+                        if (montoObj instanceof BigDecimal) {
+                            totalMonto = totalMonto.add((BigDecimal) montoObj);
+                        } else if (montoObj instanceof Number) {
+                            totalMonto = totalMonto.add(BigDecimal.valueOf(((Number) montoObj).doubleValue()));
+                        } else if (montoObj instanceof String) {
+                            totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error al procesar monto: " + montoObj + " - " + e.getMessage());
+                    }
+                }
+            }
+            response.put("totalMonto", totalMonto);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en GET /api/finanzas/egresos: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener todos los egresos: " + e.getMessage());
+            error.put("errorDetails", e.toString());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @GetMapping("/gastos")
+    public ResponseEntity<?> getGastos() {
+        try {
+            System.out.println("GET /api/finanzas/gastos llamado");
+
+            List<Saldo> gastos = saldoRepository.findAll();
+
+            System.out.println("Gastos encontrados: " + gastos.size());
+
+            List<Map<String, Object>> gastosResponse = gastos.stream()
+                    .map(gasto -> {
+                        Map<String, Object> gastoMap = new HashMap<>();
+                        gastoMap.put("id", gasto.getId());
+                        gastoMap.put("concepto", gasto.getConcepto());
+                        gastoMap.put("descripcion", gasto.getDescripcion());
+                        gastoMap.put("monto", gasto.getMonto());
+                        gastoMap.put("fecha", gasto.getFechaLimite());
+                        gastoMap.put("condominio_id",
+                                gasto.getUsuario() != null && gasto.getUsuario().getCondominio() != null
+                                        ? gasto.getUsuario().getCondominio().getId()
+                                        : gasto.getCondominio() != null ? gasto.getCondominio().getId() : null);
+                        gastoMap.put("usuario_id", gasto.getUsuario() != null ? gasto.getUsuario().getId() : null);
+                        return gastoMap;
+                    })
+                    .toList();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", gastosResponse);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en GET /api/finanzas/gastos: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener gastos: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @GetMapping("/ingresos-filtrados")
+    public ResponseEntity<?> getIngresosFiltrados(
+            @RequestParam("condominioId") Long condominioId,
+            @RequestParam(value = "año", required = false) Integer año,
+            @RequestParam(value = "mes", required = false) Integer mes,
+            @RequestParam(value = "periodo", required = false) String periodo) {
+        try {
+            System.out.println("GET /api/finanzas/ingresos-filtrados llamado: condominioId=" + condominioId);
+
+            List<Map<String, Object>> ingresos = finanzasService.getIngresosDetalladosNuevo(condominioId, año, mes,
+                    periodo);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", ingresos);
+            response.put("total", ingresos.size());
+            response.put("totalMonto", ingresos.stream()
+                    .map(i -> (BigDecimal) i.get("monto"))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en GET /api/finanzas/ingresos-filtrados: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener ingresos filtrados: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @GetMapping("/egresos-filtrados")
+    public ResponseEntity<?> getEgresosFiltrados(
+            @RequestParam("condominioId") Long condominioId,
+            @RequestParam(value = "año", required = false) Integer año,
+            @RequestParam(value = "mes", required = false) Integer mes,
+            @RequestParam(value = "periodo", required = false) String periodo) {
+        try {
+            System.out.println("GET /api/finanzas/egresos-filtrados llamado: condominioId=" + condominioId);
+
+            List<Map<String, Object>> egresos = finanzasService.getEgresosDetalladosNuevo(condominioId, año, mes,
+                    periodo);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", egresos);
+            response.put("total", egresos.size());
+            response.put("totalMonto", egresos.stream()
+                    .map(e -> (BigDecimal) e.get("monto"))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en GET /api/finanzas/egresos-filtrados: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener egresos filtrados: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
 
     @GetMapping("/meses-disponibles")
     public ResponseEntity<?> getMesesDisponibles(
@@ -82,62 +306,6 @@ public class FinanzasController {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Error al obtener meses disponibles: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(error);
-        }
-    }
-
-    @GetMapping("/ingresos")
-    public ResponseEntity<?> getIngresos(
-            @RequestParam("condominioId") Long condominioId,
-            @RequestParam(value = "año", required = false) Integer año,
-            @RequestParam(value = "mes", required = false) Integer mes,
-            @RequestParam(value = "periodo", required = false) String periodo) {
-        try {
-            List<Map<String, Object>> ingresos = finanzasService.getIngresosDetalladosNuevo(condominioId, año, mes,
-                    periodo);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", ingresos);
-            response.put("total", ingresos.size());
-            response.put("totalMonto", ingresos.stream()
-                    .map(i -> (BigDecimal) i.get("monto"))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "Error al obtener ingresos: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(error);
-        }
-    }
-
-    @GetMapping("/egresos")
-    public ResponseEntity<?> getEgresos(
-            @RequestParam("condominioId") Long condominioId,
-            @RequestParam(value = "año", required = false) Integer año,
-            @RequestParam(value = "mes", required = false) Integer mes,
-            @RequestParam(value = "periodo", required = false) String periodo) {
-        try {
-            List<Map<String, Object>> egresos = finanzasService.getEgresosDetalladosNuevo(condominioId, año, mes,
-                    periodo);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", egresos);
-            response.put("total", egresos.size());
-            response.put("totalMonto", egresos.stream()
-                    .map(e -> (BigDecimal) e.get("monto"))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "Error al obtener egresos: " + e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -259,42 +427,6 @@ public class FinanzasController {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Error al obtener estadísticas: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(error);
-        }
-    }
-
-    @GetMapping("/gastos")
-    public ResponseEntity<?> getGastos() {
-        try {
-            List<Saldo> gastos = saldoRepository.findAll();
-
-            List<Map<String, Object>> gastosResponse = gastos.stream()
-                    .map(gasto -> {
-                        Map<String, Object> gastoMap = new HashMap<>();
-                        gastoMap.put("id", gasto.getId());
-                        gastoMap.put("concepto", gasto.getConcepto());
-                        gastoMap.put("descripcion", gasto.getDescripcion());
-                        gastoMap.put("monto", gasto.getMonto());
-                        gastoMap.put("fecha", gasto.getFechaLimite());
-                        gastoMap.put("condominio_id",
-                                gasto.getUsuario() != null && gasto.getUsuario().getCondominio() != null
-                                        ? gasto.getUsuario().getCondominio().getId()
-                                        : null);
-                        gastoMap.put("usuario_id", gasto.getUsuario() != null ? gasto.getUsuario().getId() : null);
-                        return gastoMap;
-                    })
-                    .toList();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", gastosResponse);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "Error al obtener gastos: " + e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }

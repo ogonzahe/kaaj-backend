@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+// ELIMINADO: @CrossOrigin si existe
 @RestController
 @RequestMapping("/api/condominios")
 public class CondominioController {

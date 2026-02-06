@@ -6,45 +6,54 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import java.util.Arrays;
+
 @Configuration
 public class CorsConfig {
 
     @Bean
     public CorsFilter corsFilter() {
+        System.out.println("==================================================");
+        System.out.println("CORS CONFIGURATION INITIALIZED");
+        System.out.println("==================================================");
+
         CorsConfiguration config = new CorsConfiguration();
-        
-        // Configuraci?n COMPLETA
+
+        // PERMITIR TODOS LOS ORIGENES (para desarrollo)
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5173");
-        config.addAllowedOrigin("http://localhost:5174");
-        config.addAllowedOrigin("http://localhost:3000");
-        
-        // Headers permitidos
+        config.addAllowedOriginPattern("*");  // Esto permite cualquier IP
+
+        System.out.println("CORS: allowCredentials = true");
+        System.out.println("CORS: allowedOriginPattern = *");
+
+        // HEADERS PERMITIDOS
         config.addAllowedHeader("*");
-        
-        // M?todos permitidos
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("DELETE");
-        config.addAllowedMethod("PATCH");
-        config.addAllowedMethod("OPTIONS");
-        config.addAllowedMethod("HEAD");
-        
-        // Headers expuestos
-        config.addExposedHeader("Authorization");
-        config.addExposedHeader("X-Usuario-Id");
-        config.addExposedHeader("Content-Disposition");
-        config.addExposedHeader("Content-Type");
-        config.addExposedHeader("Access-Control-Allow-Origin");
-        config.addExposedHeader("Access-Control-Allow-Credentials");
-        
-        // Tiempo de cach?
+
+        // MÉTODOS HTTP PERMITIDOS
+        config.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+        ));
+
+        System.out.println("CORS: allowedMethods = GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD");
+        System.out.println("CORS: allowedHeaders = *");
+
+        // HEADERS EXPUESTOS
+        config.setExposedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+        ));
+
+        // TIEMPO DE CACHÉ
         config.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        
+
+        System.out.println("CORS: registered for path pattern = /**");
+        System.out.println("==================================================");
+
         return new CorsFilter(source);
     }
 }
