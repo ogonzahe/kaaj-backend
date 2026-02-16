@@ -9,7 +9,7 @@ import com.kaaj.api.repository.NotificacionRepository;
 import com.kaaj.api.repository.UsuarioRepository;
 import com.kaaj.api.repository.CondominioRepository;
 import com.kaaj.api.repository.UsuarioCondominioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,20 +18,14 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class NotificacionService {
 
-    @Autowired
-    private NotificacionRepository notificacionRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private CondominioRepository condominioRepository;
-
-    @Autowired
-    private UsuarioCondominioRepository usuarioCondominioRepository;
+    private final NotificacionRepository notificacionRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final CondominioRepository condominioRepository;
+    private final UsuarioCondominioRepository usuarioCondominioRepository;
 
     // ========== CREAR NOTIFICACIONES ==========
 

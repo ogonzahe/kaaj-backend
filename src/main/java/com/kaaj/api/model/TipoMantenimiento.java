@@ -1,7 +1,13 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "tipo_mantenimiento")
 public class TipoMantenimiento {
@@ -12,21 +18,4 @@ public class TipoMantenimiento {
 
     @Column(name = "descripcion", nullable = false)
     private String descripcion;
-
-    // Getters y Setters
-    public Integer getIdTipo() {
-        return idTipo;
-    }
-
-    public void setIdTipo(Integer idTipo) {
-        this.idTipo = idTipo;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
 }

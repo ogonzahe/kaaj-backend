@@ -1,4 +1,10 @@
-/*M!999999\- enable the sandbox mode */ 
+/*M!999999\- enable the sandbox mode */
+
+-- ============================================================
+-- WARNING: This file is for DEVELOPMENT/TESTING purposes only.
+-- Do NOT use this data in production environments.
+-- All passwords should be hashed with BCrypt before deployment.
+-- ============================================================
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -10,6 +16,7 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
+USE kaaj;
 DROP TABLE IF EXISTS `acceso_seguridad`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -283,10 +290,10 @@ CREATE TABLE `documentos` (
 LOCK TABLES `documentos` WRITE;
 /*!40000 ALTER TABLE `documentos` DISABLE KEYS */;
 set autocommit=0;
-INSERT INTO `documentos` (`id`, `titulo`, `descripcion`, `nombre_archivo`, `ruta_archivo`, `tamanio`, `mime_type`, `condominio_id`, `categoria_id`, `es_publico`, `fecha_vigencia`, `creado_en`, `creado_por`, `actualizado_en`) VALUES (1,'reglas','reglas','1768454225541_f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf','C:\\Users\\Paco\\Desktop\\COPO\\kaaj-backend\\uploads\\documentos\\1768454225541_f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf',66763,'application/pdf',NULL,NULL,1,NULL,'2026-01-14 23:17:05',14,'2026-01-14 23:17:05'),
-(2,'d','d','f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf','C:\\Users\\Paco\\Desktop\\COPO\\kaaj-backend\\uploads\\b2c5d2d7-b1a5-465c-9029-9ebf5b7b10d7.pdf',66763,'application/pdf',NULL,NULL,1,NULL,'2026-01-15 00:40:19',14,'2026-01-15 00:40:19'),
-(3,'a','a','ine2.jpeg','C:\\Users\\Paco\\Desktop\\COPO\\kaaj-backend\\uploads\\3c211da9-417c-4ede-9f31-e28ea37308cb.jpeg',256696,'image/jpeg',NULL,NULL,1,NULL,'2026-01-15 01:11:12',14,'2026-01-15 01:11:12'),
-(4,'2','1','logo.png','C:\\Users\\Paco\\Desktop\\COPO\\kaaj-backend\\uploads\\4b653991-b4f9-4718-8ba7-9e5f633e2ae7.png',176151,'image/png',NULL,NULL,1,NULL,'2026-01-15 12:25:34',14,'2026-01-15 12:25:34'),
+INSERT INTO `documentos` (`id`, `titulo`, `descripcion`, `nombre_archivo`, `ruta_archivo`, `tamanio`, `mime_type`, `condominio_id`, `categoria_id`, `es_publico`, `fecha_vigencia`, `creado_en`, `creado_por`, `actualizado_en`) VALUES (1,'reglas','reglas','1768454225541_f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf','uploads/documents/1768454225541_f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf',66763,'application/pdf',NULL,NULL,1,NULL,'2026-01-14 23:17:05',14,'2026-01-14 23:17:05'),
+(2,'d','d','f0f87c3a-3d2e-46d3-ae42-0bd7951eadb2.pdf','uploads/documents/b2c5d2d7-b1a5-465c-9029-9ebf5b7b10d7.pdf',66763,'application/pdf',NULL,NULL,1,NULL,'2026-01-15 00:40:19',14,'2026-01-15 00:40:19'),
+(3,'a','a','ine2.jpeg','uploads/documents/3c211da9-417c-4ede-9f31-e28ea37308cb.jpeg',256696,'image/jpeg',NULL,NULL,1,NULL,'2026-01-15 01:11:12',14,'2026-01-15 01:11:12'),
+(4,'2','1','logo.png','uploads/documents/4b653991-b4f9-4718-8ba7-9e5f633e2ae7.png',176151,'image/png',NULL,NULL,1,NULL,'2026-01-15 12:25:34',14,'2026-01-15 12:25:34'),
 (21,'Notas sobre el hogar','una prueba','ventcas.pdf','/uploads/39dbc72d-1681-4ba1-9032-bd4ad446326d.pdf',8396222,'application/pdf',7,3,1,'2026-02-26','2026-02-02 21:54:59',14,'2026-02-02 21:54:59'),
 (22,'Reglaento','reglas','AREASDIF.xlsx','/uploads/2bccac78-b2b9-4cfd-b5c6-69c76061b4fd.xlsx',14143,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',13,19,1,NULL,'2026-02-04 02:23:41',31,'2026-02-04 02:23:41');
 /*!40000 ALTER TABLE `documentos` ENABLE KEYS */;
@@ -1167,24 +1174,24 @@ CREATE TABLE `usuarios` (
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
 set autocommit=0;
-INSERT INTO `usuarios` (`id`, `correo`, `contrasena`, `rol_id`, `creado_en`, `rol_nombre`, `nombre`, `telefono`, `actualizado_en`, `condominio_id`, `apartamento_id`, `activo`, `numero_casa`, `stripe_customer_id`) VALUES (8,'kaaj@kaaj.com','copokaaj2025$@',4,'2025-12-23 01:50:50','COPO','Administrador COPO','555-0000','2026-01-13 18:16:46',NULL,NULL,1,NULL,NULL),
-(12,'omar@gmail.com','omar1234',2,'2026-01-13 17:08:37','USUARIO','omar','55555555555','2026-01-13 17:08:37',1,NULL,1,'1',NULL),
-(13,'pancho@gmail.com','pancho1234',2,'2026-01-13 17:13:18','USUARIO','pancho','2111111111','2026-01-13 17:13:18',1,NULL,1,'2',NULL),
-(14,'paolina@mail.com','paolinakaaj',1,'2026-01-13 18:17:24','admin_usuario','paolina  cruz','11111111111111','2026-01-26 22:05:42',7,NULL,1,NULL,NULL),
-(21,'arlet@gmail.com','arletkaaj',2,'2026-01-19 11:28:01','USUARIO','Arlet codero zamora','5524164533','2026-01-26 22:09:49',7,NULL,1,'1','cus_TrnB2Zan29g9AB'),
-(23,'roberto@mail.com','robertokaaj',2,'2026-01-19 19:29:54','USUARIO','roberto','55555555555','2026-01-19 19:29:54',8,NULL,1,'1',NULL),
-(24,'jose@mail.com','josekaaj',1,'2026-01-22 19:46:50','admin_usuario','JOSE','87654321','2026-01-22 19:46:50',10,NULL,1,NULL,NULL),
-(25,'ricardo@mail.com','ricardokaaj',1,'2026-01-22 19:47:52','admin_usuario','ricardo','55555555','2026-01-22 19:47:52',9,NULL,1,NULL,NULL),
-(26,'pepito@mail.com','pepitokaaj',2,'2026-01-22 19:50:21','USUARIO','PEPITO','12345678','2026-01-26 22:12:44',10,NULL,1,'1','cus_TrnEFlXGUCeehx'),
-(27,'lupita@mail.com','lupitakaaj',2,'2026-01-22 19:50:52','USUARIO','lupita','1234543','2026-01-26 22:08:18',10,NULL,1,'2','cus_TrnAkuuLwj4OPm'),
-(28,'chuchito@mail.com','chuchitokaaj',3,'2026-01-22 19:51:47','SEGURIDAD','chuchito','123456789','2026-01-22 19:51:47',10,NULL,1,'3',NULL),
-(29,'fernandito@mail.com','fernanditokaaj',2,'2026-01-22 19:52:49','USUARIO','fernandito','98765441','2026-01-22 19:52:56',10,NULL,0,'2',NULL),
-(30,'pancho@mail.com','panchokaaj',2,'2026-01-27 22:33:03','USUARIO','pancho','23123123123','2026-01-27 22:33:03',7,NULL,1,'4',NULL),
-(31,'roberto@kaaj.com','robertokaaj',1,'2026-02-04 01:18:33','admin_usuario','ROBERTO','562414151','2026-02-04 01:25:39',13,NULL,1,NULL,NULL),
-(32,'lupita2@mail.com','lupitakaaj',2,'2026-02-04 01:20:28','USUARIO','lupita','4324435435','2026-02-04 02:01:45',13,NULL,1,'1','cus_TukvsoNohSOLKc'),
-(33,'luisito@mail.com','luisitokaaj',2,'2026-02-04 01:21:01','USUARIO','luisito','224314242443','2026-02-04 02:01:16',13,NULL,1,'2','cus_TukunxkkvkHUR1'),
-(35,'fer@mail.com','ferkaaj',2,'2026-02-04 01:42:58','USUARIO','fer','4343243442','2026-02-04 01:59:08',13,NULL,1,'5','cus_TukscHOlKQPP7C'),
-(36,'paco@mail.com','pacokaaj',3,'2026-02-04 02:28:38','SEGURIDAD','paco','34213213123','2026-02-04 02:28:38',13,NULL,1,'1',NULL);
+INSERT INTO `usuarios` (`id`, `correo`, `contrasena`, `rol_id`, `creado_en`, `rol_nombre`, `nombre`, `telefono`, `actualizado_en`, `condominio_id`, `apartamento_id`, `activo`, `numero_casa`, `stripe_customer_id`) VALUES (8,'kaaj@kaaj.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',4,'2025-12-23 01:50:50','COPO','Administrador COPO','555-0000','2026-01-13 18:16:46',NULL,NULL,1,NULL,NULL),
+(12,'omar@gmail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-13 17:08:37','USUARIO','omar','55555555555','2026-01-13 17:08:37',1,NULL,1,'1',NULL),
+(13,'pancho@gmail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-13 17:13:18','USUARIO','pancho','2111111111','2026-01-13 17:13:18',1,NULL,1,'2',NULL),
+(14,'paolina@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',1,'2026-01-13 18:17:24','admin_usuario','paolina  cruz','11111111111111','2026-01-26 22:05:42',7,NULL,1,NULL,NULL),
+(21,'arlet@gmail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-19 11:28:01','USUARIO','Arlet codero zamora','5524164533','2026-01-26 22:09:49',7,NULL,1,'1',NULL),
+(23,'roberto@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-19 19:29:54','USUARIO','roberto','55555555555','2026-01-19 19:29:54',8,NULL,1,'1',NULL),
+(24,'jose@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',1,'2026-01-22 19:46:50','admin_usuario','JOSE','87654321','2026-01-22 19:46:50',10,NULL,1,NULL,NULL),
+(25,'ricardo@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',1,'2026-01-22 19:47:52','admin_usuario','ricardo','55555555','2026-01-22 19:47:52',9,NULL,1,NULL,NULL),
+(26,'pepito@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-22 19:50:21','USUARIO','PEPITO','12345678','2026-01-26 22:12:44',10,NULL,1,'1',NULL),
+(27,'lupita@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-22 19:50:52','USUARIO','lupita','1234543','2026-01-26 22:08:18',10,NULL,1,'2',NULL),
+(28,'chuchito@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',3,'2026-01-22 19:51:47','SEGURIDAD','chuchito','123456789','2026-01-22 19:51:47',10,NULL,1,'3',NULL),
+(29,'fernandito@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-22 19:52:49','USUARIO','fernandito','98765441','2026-01-22 19:52:56',10,NULL,0,'2',NULL),
+(30,'pancho@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-01-27 22:33:03','USUARIO','pancho','23123123123','2026-01-27 22:33:03',7,NULL,1,'4',NULL),
+(31,'roberto@kaaj.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',1,'2026-02-04 01:18:33','admin_usuario','ROBERTO','562414151','2026-02-04 01:25:39',13,NULL,1,NULL,NULL),
+(32,'lupita2@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-02-04 01:20:28','USUARIO','lupita','4324435435','2026-02-04 02:01:45',13,NULL,1,'1',NULL),
+(33,'luisito@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-02-04 01:21:01','USUARIO','luisito','224314242443','2026-02-04 02:01:16',13,NULL,1,'2',NULL),
+(35,'fer@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',2,'2026-02-04 01:42:58','USUARIO','fer','4343243442','2026-02-04 01:59:08',13,NULL,1,'5',NULL),
+(36,'paco@mail.com','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',3,'2026-02-04 02:28:38','SEGURIDAD','paco','34213213123','2026-02-04 02:28:38',13,NULL,1,'1',NULL);
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 commit;

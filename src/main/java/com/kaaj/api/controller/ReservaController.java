@@ -2,7 +2,8 @@ package com.kaaj.api.controller;
 
 import com.kaaj.api.model.*;
 import com.kaaj.api.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,19 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/reservas")
 public class ReservaController {
 
-    @Autowired
-    private ReservaRepository reservaRepo;
-
-    @Autowired
-    private AmenidadRepository amenidadRepo;
-
-    @Autowired
-    private UsuarioRepository usuarioRepo;
+    private final ReservaRepository reservaRepo;
+    private final AmenidadRepository amenidadRepo;
+    private final UsuarioRepository usuarioRepo;
 
     // Obtener reservas por mes y a??o
     @GetMapping
@@ -33,16 +30,15 @@ public class ReservaController {
             @RequestParam Integer month,
             @RequestParam Integer year) {
         try {
-            System.out.println("=== SOLICITANDO RESERVAS PARA: " + month + "/" + year + " ===");
+            log.info("Solicitando reservas para: {}/{}", month, year);
 
             List<Reserva> reservas = reservaRepo.findByMesAndAnio(month, year);
-            System.out.println("Reservas encontradas: " + reservas.size());
+            log.info("Reservas encontradas: {}", reservas.size());
 
             return ResponseEntity.ok(reservas);
 
         } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error obteniendo reservas para {}/{}", month, year, e);
             return ResponseEntity.ok(List.of());
         }
     }
@@ -51,8 +47,8 @@ public class ReservaController {
     @PostMapping
     public ResponseEntity<?> crearReserva(@RequestBody Map<String, Object> reservaData) {
         try {
-            System.out.println("=== CREANDO NUEVA RESERVA ===");
-            System.out.println("Datos recibidos: " + reservaData);
+            log.info("Creando nueva reserva");
+            log.debug("Datos recibidos: {}", reservaData);
 
             String amenidadNombre = (String) reservaData.get("amenidad");
             Integer dia = (Integer) reservaData.get("dia");
@@ -128,10 +124,9 @@ public class ReservaController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.out.println("ERROR creando reserva: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error creando reserva", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al crear reserva: " + e.getMessage());
+                    .body("Error al crear reserva");
         }
     }
 
@@ -139,36 +134,22 @@ public class ReservaController {
     @GetMapping("/amenidades")
     public ResponseEntity<?> getAmenidadesActivas() {
         try {
-            System.out.println("=== SOLICITANDO AMENIDADES ACTIVAS ===");
+            log.info("Solicitando amenidades activas");
 
             List<Amenidad> amenidades = amenidadRepo.findByEstadoOrderByNombreAsc(Amenidad.EstadoAmenidad.activa);
 
-            // Para testing, retornar amenidades por defecto si no hay en BD
             if (amenidades == null || amenidades.isEmpty()) {
-                System.out.println("No hay amenidades en BD, retornando por defecto");
-                return ResponseEntity.ok(List.of(
-                        crearAmenidadMock(1, "Asador"),
-                        crearAmenidadMock(2, "Gimnasio")));
+                log.info("No hay amenidades activas en BD");
+                return ResponseEntity.ok(List.of());
             }
 
-            System.out.println("Amenidades encontradas: " + amenidades.size());
+            log.info("Amenidades encontradas: {}", amenidades.size());
             return ResponseEntity.ok(amenidades);
 
         } catch (Exception e) {
-            System.out.println("ERROR obteniendo amenidades: " + e.getMessage());
-            e.printStackTrace();
-            // Retornar amenidades por defecto en caso de error
-            return ResponseEntity.ok(List.of(
-                    crearAmenidadMock(1, "Asador"),
-                    crearAmenidadMock(2, "Gimnasio")));
+            log.error("Error obteniendo amenidades", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al obtener amenidades");
         }
-    }
-
-    private Map<String, Object> crearAmenidadMock(Integer id, String nombre) {
-        Map<String, Object> amenidad = new HashMap<>();
-        amenidad.put("id", id);
-        amenidad.put("nombre", nombre);
-        amenidad.put("estado", "activa");
-        return amenidad;
     }
 }

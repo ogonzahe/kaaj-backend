@@ -1,8 +1,14 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.util.Date;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "usuario_condominio")
 public class UsuarioCondominio {
@@ -25,45 +31,4 @@ public class UsuarioCondominio {
     @Column(name = "fecha_asignacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaAsignacion = new Date();
-
-    // Getters y Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
-    public Condominio getCondominio() {
-        return condominio;
-    }
-
-    public void setCondominio(Condominio condominio) {
-        this.condominio = condominio;
-    }
-
-    public Boolean getEsPrincipal() {
-        return esPrincipal;
-    }
-
-    public void setEsPrincipal(Boolean esPrincipal) {
-        this.esPrincipal = esPrincipal;
-    }
-
-    public Date getFechaAsignacion() {
-        return fechaAsignacion;
-    }
-
-    public void setFechaAsignacion(Date fechaAsignacion) {
-        this.fechaAsignacion = fechaAsignacion;
-    }
 }

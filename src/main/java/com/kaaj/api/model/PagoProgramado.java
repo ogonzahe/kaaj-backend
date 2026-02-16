@@ -1,12 +1,18 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "pagos_programados")
 public class PagoProgramado {
@@ -29,7 +35,7 @@ public class PagoProgramado {
     @Column(name = "es_recurrente")
     private Boolean esRecurrente = false;
 
-    private Integer periodicidad; // días
+    private Integer periodicidad; // dias
     private Integer intervaloDias;
 
     // NUEVO CAMPO: repeticiones
@@ -54,127 +60,4 @@ public class PagoProgramado {
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
-
-    // Getters y Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getConcepto() {
-        return concepto;
-    }
-
-    public void setConcepto(String concepto) {
-        this.concepto = concepto;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public String getCategoria() {
-        return categoria;
-    }
-
-    public void setCategoria(String categoria) {
-        this.categoria = categoria;
-    }
-
-    public BigDecimal getMonto() {
-        return monto;
-    }
-
-    public void setMonto(BigDecimal monto) {
-        this.monto = monto;
-    }
-
-    public LocalDate getFechaInicio() {
-        return fechaInicio;
-    }
-
-    public void setFechaInicio(LocalDate fechaInicio) {
-        this.fechaInicio = fechaInicio;
-    }
-
-    public LocalDate getFechaLimite() {
-        return fechaLimite;
-    }
-
-    public void setFechaLimite(LocalDate fechaLimite) {
-        this.fechaLimite = fechaLimite;
-    }
-
-    public Boolean getEsRecurrente() {
-        return esRecurrente;
-    }
-
-    public void setEsRecurrente(Boolean esRecurrente) {
-        this.esRecurrente = esRecurrente;
-    }
-
-    public Integer getPeriodicidad() {
-        return periodicidad;
-    }
-
-    public void setPeriodicidad(Integer periodicidad) {
-        this.periodicidad = periodicidad;
-    }
-
-    public Integer getIntervaloDias() {
-        return intervaloDias;
-    }
-
-    public void setIntervaloDias(Integer intervaloDias) {
-        this.intervaloDias = intervaloDias;
-    }
-
-    // NUEVO GETTER/SETTER para repeticiones
-    public Integer getRepeticiones() {
-        return repeticiones;
-    }
-
-    public void setRepeticiones(Integer repeticiones) {
-        this.repeticiones = repeticiones;
-    }
-
-    public Condominio getCondominio() {
-        return condominio;
-    }
-
-    public void setCondominio(Condominio condominio) {
-        this.condominio = condominio;
-    }
-
-    public List<Apartamento> getApartamentos() {
-        return apartamentos;
-    }
-
-    public void setApartamentos(List<Apartamento> apartamentos) {
-        this.apartamentos = apartamentos;
-    }
-
-    // NUEVO GETTER/SETTER para usuariosIds
-    public List<Integer> getUsuariosIds() {
-        return usuariosIds;
-    }
-
-    public void setUsuariosIds(List<Integer> usuariosIds) {
-        this.usuariosIds = usuariosIds;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
 }

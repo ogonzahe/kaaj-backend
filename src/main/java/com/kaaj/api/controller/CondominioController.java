@@ -2,7 +2,8 @@ package com.kaaj.api.controller;
 
 import com.kaaj.api.model.Condominio;
 import com.kaaj.api.repository.CondominioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,13 +12,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-// ELIMINADO: @CrossOrigin si existe
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/condominios")
 public class CondominioController {
 
-    @Autowired
-    private CondominioRepository condominioRepository;
+    private final CondominioRepository condominioRepository;
 
     @GetMapping
     public ResponseEntity<List<Condominio>> getAllCondominios() {
@@ -25,7 +26,7 @@ public class CondominioController {
             List<Condominio> condominios = condominioRepository.findAll();
             return ResponseEntity.ok(condominios);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener todos los condominios", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -37,7 +38,7 @@ public class CondominioController {
             return condominio.map(ResponseEntity::ok)
                             .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener condominio por id", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -62,10 +63,9 @@ public class CondominioController {
             Condominio savedCondominio = condominioRepository.save(condominio);
             return ResponseEntity.ok(savedCondominio);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al crear condominio", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al crear condominio");
-            error.put("message", e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -95,10 +95,9 @@ public class CondominioController {
             Condominio updated = condominioRepository.save(condominio);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al actualizar condominio", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al actualizar condominio");
-            error.put("message", e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -117,10 +116,9 @@ public class CondominioController {
 
             return ResponseEntity.ok(Map.of("message", "Estado actualizado correctamente"));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al cambiar estado", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al cambiar estado");
-            error.put("message", e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -134,10 +132,9 @@ public class CondominioController {
             condominioRepository.deleteById(id);
             return ResponseEntity.ok(Map.of("message", "Condominio eliminado correctamente"));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al eliminar condominio", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al eliminar condominio");
-            error.put("message", e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -150,7 +147,7 @@ public class CondominioController {
             List<Condominio> condominios = condominioRepository.findByNombreContaining(nombre);
             return ResponseEntity.ok(condominios);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al buscar condominios", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -161,7 +158,7 @@ public class CondominioController {
             List<Condominio> condominios = condominioRepository.findByActivo(true);
             return ResponseEntity.ok(condominios);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener condominios activos", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -178,13 +175,10 @@ public class CondominioController {
             Condominio condominio = condominioOpt.get();
             
             estadisticas.put("condominio", condominio);
-            estadisticas.put("ocupacion", "85%"); // Ejemplo
-            estadisticas.put("pagosAlDia", "92%"); // Ejemplo
-            estadisticas.put("ingresosMensuales", 150000); // Ejemplo
             
             return ResponseEntity.ok(estadisticas);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener estadisticas del condominio", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al obtener estad?sticas");
             return ResponseEntity.internalServerError().body(error);

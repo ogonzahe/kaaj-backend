@@ -7,23 +7,18 @@ import com.kaaj.api.model.Condominio;
 import com.kaaj.api.repository.ReporteRepository;
 import com.kaaj.api.repository.UsuarioRepository;
 import com.kaaj.api.repository.CondominioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class ReporteService {
 
-    @Autowired
-    private ReporteRepository reporteRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private CondominioRepository condominioRepository;
+    private final ReporteRepository reporteRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final CondominioRepository condominioRepository;
 
     @Transactional
     public Reporte crearReporte(CrearReporteDTO crearReporteDTO) {

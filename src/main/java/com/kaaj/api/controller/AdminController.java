@@ -2,24 +2,22 @@ package com.kaaj.api.controller;
 
 import com.kaaj.api.model.*;
 import com.kaaj.api.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/administradores")
 public class AdminController {
 
-    @Autowired
-    private UsuarioRepository usuarioRepo;
-
-    @Autowired
-    private CondominioRepository condominioRepo;
-
-    @Autowired
-    private UsuarioCondominioRepository usuarioCondominioRepo;
+    private final UsuarioRepository usuarioRepo;
+    private final CondominioRepository condominioRepo;
+    private final UsuarioCondominioRepository usuarioCondominioRepo;
 
     // ========== OBTENER CONDÓMINOS DE UN ADMINISTRADOR ==========
     @GetMapping("/{adminId}/condominios")
@@ -49,7 +47,7 @@ public class AdminController {
             return ResponseEntity.ok(condominios);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener condominios del administrador con id: {}", adminId, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al obtener condominios del administrador"));
         }
@@ -144,9 +142,9 @@ public class AdminController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al asignar condominios al administrador con id: {}", adminId, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error al asignar condominios: " + e.getMessage()));
+                    .body(Map.of("error", "Error al asignar condominios"));
         }
     }
 
@@ -177,7 +175,7 @@ public class AdminController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al eliminar asignaciones del administrador con id: {}", adminId, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al eliminar asignaciones"));
         }
@@ -205,7 +203,7 @@ public class AdminController {
             return ResponseEntity.ok(administradores);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener administradores del condominio con id: {}", condominioId, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al obtener administradores del condominio"));
         }
@@ -268,7 +266,7 @@ public class AdminController {
             return ResponseEntity.ok(adminsConCondominios);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al obtener administradores", e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al obtener administradores"));
         }

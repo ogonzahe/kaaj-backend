@@ -4,7 +4,8 @@ import com.kaaj.api.dto.VisitaRequest;
 import com.kaaj.api.dto.VisitaResponse;
 import com.kaaj.api.model.*;
 import com.kaaj.api.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,19 +14,15 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/visitas")
 public class VisitaController {
 
-    @Autowired
-    private VisitaRepository visitaRepo;
-
-    @Autowired
-    private EscaneoQrRepository escaneoQrRepo;
-
-    @Autowired
-    private UsuarioRepository usuarioRepo;
+    private final VisitaRepository visitaRepo;
+    private final EscaneoQrRepository escaneoQrRepo;
+    private final UsuarioRepository usuarioRepo;
 
     // Generar nueva visita con QR
     @PostMapping("/generar")
@@ -58,8 +55,9 @@ public class VisitaController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al generar visita", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al generar visita: " + e.getMessage());
+                    .body("Error al generar visita");
         }
     }
 
@@ -103,8 +101,9 @@ public class VisitaController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al escanear QR: {}", codigoQr, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al escanear QR: " + e.getMessage());
+                    .body("Error al escanear QR");
         }
     }
 
@@ -118,8 +117,9 @@ public class VisitaController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
+            log.error("Error al obtener visitas por usuario con id: {}", usuarioId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al obtener visitas: " + e.getMessage());
+                    .body("Error al obtener visitas");
         }
     }
 
@@ -133,8 +133,9 @@ public class VisitaController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
+            log.error("Error al obtener todas las visitas", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al obtener visitas: " + e.getMessage());
+                    .body("Error al obtener visitas");
         }
     }
 
@@ -155,8 +156,9 @@ public class VisitaController {
 
             return ResponseEntity.ok(estadisticas);
         } catch (Exception e) {
+            log.error("Error al obtener estadisticas de visitas", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al obtener estad??sticas: " + e.getMessage());
+                    .body("Error al obtener estadisticas");
         }
     }
 
