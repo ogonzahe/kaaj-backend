@@ -6,7 +6,8 @@ import com.kaaj.api.model.Usuario;
 import com.kaaj.api.repository.SaldoRepository;
 import com.kaaj.api.repository.UsuarioRepository;
 import com.kaaj.api.service.FinanzasService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,24 +19,20 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// ELIMINADO: @CrossOrigin(origins = "http://localhost:5173")
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/finanzas")
 public class FinanzasController {
 
-    @Autowired
-    private FinanzasService finanzasService;
-
-    @Autowired
-    private SaldoRepository saldoRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final FinanzasService finanzasService;
+    private final SaldoRepository saldoRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @GetMapping("/ingresos")
     public ResponseEntity<?> getAllIngresos() {
         try {
-            System.out.println("GET /api/finanzas/ingresos llamado");
+            log.info("GET /api/finanzas/ingresos llamado");
 
             Map<String, Object> result = finanzasService.getAllIngresosCompletos();
 
@@ -44,16 +41,7 @@ public class FinanzasController {
                 ingresos = (List<Map<String, Object>>) result.get("data");
             }
 
-            System.out.println("Ingresos encontrados: " + ingresos.size());
-
-            if (!ingresos.isEmpty() && ingresos.get(0) != null) {
-                Map<String, Object> primerIngreso = ingresos.get(0);
-                System.out.println("Estructura del primer ingreso:");
-                for (Map.Entry<String, Object> entry : primerIngreso.entrySet()) {
-                    System.out.println("  " + entry.getKey() + ": " + entry.getValue() +
-                            " (Tipo: " + (entry.getValue() != null ? entry.getValue().getClass().getSimpleName() : "null") + ")");
-                }
-            }
+            log.info("Ingresos encontrados: {}", ingresos.size());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -73,7 +61,7 @@ public class FinanzasController {
                             totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
                         }
                     } catch (Exception e) {
-                        System.err.println("Error al procesar monto: " + montoObj + " - " + e.getMessage());
+                        log.warn("Error al procesar monto: {}", montoObj, e);
                     }
                 }
             }
@@ -82,14 +70,11 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("Error en GET /api/finanzas/ingresos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en GET /api/finanzas/ingresos", e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener todos los ingresos: " + e.getMessage());
-            error.put("errorDetails", e.toString());
-            error.put("stackTrace", Arrays.toString(e.getStackTrace()));
+            error.put("message", "Error al obtener ingresos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -97,7 +82,7 @@ public class FinanzasController {
     @GetMapping("/egresos")
     public ResponseEntity<?> getAllEgresos() {
         try {
-            System.out.println("GET /api/finanzas/egresos llamado");
+            log.info("GET /api/finanzas/egresos llamado");
 
             Map<String, Object> result = finanzasService.getAllEgresosCompletos();
 
@@ -106,7 +91,7 @@ public class FinanzasController {
                 egresos = (List<Map<String, Object>>) result.get("data");
             }
 
-            System.out.println("Egresos encontrados: " + egresos.size());
+            log.info("Egresos encontrados: {}", egresos.size());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -126,7 +111,7 @@ public class FinanzasController {
                             totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
                         }
                     } catch (Exception e) {
-                        System.err.println("Error al procesar monto: " + montoObj + " - " + e.getMessage());
+                        log.warn("Error al procesar monto: {}", montoObj, e);
                     }
                 }
             }
@@ -135,13 +120,11 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("Error en GET /api/finanzas/egresos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en GET /api/finanzas/egresos", e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener todos los egresos: " + e.getMessage());
-            error.put("errorDetails", e.toString());
+            error.put("message", "Error al obtener egresos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -149,11 +132,11 @@ public class FinanzasController {
     @GetMapping("/gastos")
     public ResponseEntity<?> getGastos() {
         try {
-            System.out.println("GET /api/finanzas/gastos llamado");
+            log.info("GET /api/finanzas/gastos llamado");
 
             List<Saldo> gastos = saldoRepository.findAll();
 
-            System.out.println("Gastos encontrados: " + gastos.size());
+            log.info("Gastos encontrados: {}", gastos.size());
 
             List<Map<String, Object>> gastosResponse = gastos.stream()
                     .map(gasto -> {
@@ -179,12 +162,11 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("Error en GET /api/finanzas/gastos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en GET /api/finanzas/gastos", e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener gastos: " + e.getMessage());
+            error.put("message", "Error al obtener gastos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -196,7 +178,7 @@ public class FinanzasController {
             @RequestParam(value = "mes", required = false) Integer mes,
             @RequestParam(value = "periodo", required = false) String periodo) {
         try {
-            System.out.println("GET /api/finanzas/ingresos-filtrados llamado: condominioId=" + condominioId);
+            log.info("GET /api/finanzas/ingresos-filtrados llamado: condominioId={}", condominioId);
 
             List<Map<String, Object>> ingresos = finanzasService.getIngresosDetalladosNuevo(condominioId, año, mes,
                     periodo);
@@ -212,12 +194,11 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("Error en GET /api/finanzas/ingresos-filtrados: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en GET /api/finanzas/ingresos-filtrados", e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener ingresos filtrados: " + e.getMessage());
+            error.put("message", "Error al obtener ingresos filtrados");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -229,7 +210,7 @@ public class FinanzasController {
             @RequestParam(value = "mes", required = false) Integer mes,
             @RequestParam(value = "periodo", required = false) String periodo) {
         try {
-            System.out.println("GET /api/finanzas/egresos-filtrados llamado: condominioId=" + condominioId);
+            log.info("GET /api/finanzas/egresos-filtrados llamado: condominioId={}", condominioId);
 
             List<Map<String, Object>> egresos = finanzasService.getEgresosDetalladosNuevo(condominioId, año, mes,
                     periodo);
@@ -245,12 +226,11 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("Error en GET /api/finanzas/egresos-filtrados: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en GET /api/finanzas/egresos-filtrados", e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener egresos filtrados: " + e.getMessage());
+            error.put("message", "Error al obtener egresos filtrados");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -305,7 +285,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener meses disponibles: " + e.getMessage());
+            log.error("Error al obtener meses disponibles", e);
+            error.put("message", "Error al obtener meses disponibles");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -368,7 +349,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener resumen mensual: " + e.getMessage());
+            log.error("Error al obtener resumen mensual", e);
+            error.put("message", "Error al obtener resumen mensual");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -424,9 +406,10 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al obtener estadisticas por periodo", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener estadísticas: " + e.getMessage());
+            error.put("message", "Error al obtener estadísticas");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -474,7 +457,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al crear gasto: " + e.getMessage());
+            log.error("Error al crear gasto", e);
+            error.put("message", "Error al crear gasto");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -500,7 +484,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al eliminar gasto: " + e.getMessage());
+            log.error("Error al eliminar gasto", e);
+            error.put("message", "Error al eliminar gasto");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -523,7 +508,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener resumen financiero: " + e.getMessage());
+            log.error("Error al obtener resumen financiero", e);
+            error.put("message", "Error al obtener resumen financiero");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -550,7 +536,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener movimientos: " + e.getMessage());
+            log.error("Error al obtener movimientos", e);
+            error.put("message", "Error al obtener movimientos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -574,9 +561,10 @@ public class FinanzasController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al obtener estadisticas financieras", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener estadísticas: " + e.getMessage());
+            error.put("message", "Error al obtener estadísticas");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -599,7 +587,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener detalle de ingresos: " + e.getMessage());
+            log.error("Error al obtener detalle de ingresos", e);
+            error.put("message", "Error al obtener detalle de ingresos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -622,7 +611,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener detalle de egresos: " + e.getMessage());
+            log.error("Error al obtener detalle de egresos", e);
+            error.put("message", "Error al obtener detalle de egresos");
             return ResponseEntity.internalServerError().body(error);
         }
     }
@@ -643,7 +633,8 @@ public class FinanzasController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener saldos pendientes: " + e.getMessage());
+            log.error("Error al obtener saldos pendientes", e);
+            error.put("message", "Error al obtener saldos pendientes");
             return ResponseEntity.internalServerError().body(error);
         }
     }

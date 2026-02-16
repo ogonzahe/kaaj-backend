@@ -8,7 +8,7 @@ import com.kaaj.api.model.EstatusMantenimientoEntity;
 import com.kaaj.api.repository.MantenimientoRepository;
 import com.kaaj.api.repository.TipoMantenimientoRepository;
 import com.kaaj.api.repository.EstatusMantenimientoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +17,14 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 @Transactional
 public class MantenimientoService {
 
-    @Autowired
-    private MantenimientoRepository mantenimientoRepository;
-
-    @Autowired
-    private TipoMantenimientoRepository tipoMantenimientoRepository;
-
-    @Autowired
-    private EstatusMantenimientoRepository estatusMantenimientoRepository;
+    private final MantenimientoRepository mantenimientoRepository;
+    private final TipoMantenimientoRepository tipoMantenimientoRepository;
+    private final EstatusMantenimientoRepository estatusMantenimientoRepository;
 
     public MantenimientoEntity crearMantenimiento(ReporteMantenimientoDTO reporteDTO) {
         MantenimientoEntity mantenimiento = new MantenimientoEntity();

@@ -3,7 +3,8 @@ package com.kaaj.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaaj.api.model.Amenidad;
 import com.kaaj.api.repository.AmenidadRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,13 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/amenidades")
-@CrossOrigin(origins = "http://localhost:5173") // Permite conexión con React
 public class AmenidadController {
 
-    @Autowired
-    private AmenidadRepository amenidadRepo;
+    private final AmenidadRepository amenidadRepo;
 
     // Herramienta para convertir la lista de días a texto JSON
     private final ObjectMapper mapper = new ObjectMapper();
@@ -88,8 +89,8 @@ public class AmenidadController {
             return ResponseEntity.ok(guardada);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("message", "Error al guardar amenidad: " + e.getMessage()));
+            log.error("Error al guardar amenidad", e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Error al guardar amenidad"));
         }
     }
 
@@ -136,7 +137,8 @@ public class AmenidadController {
             return ResponseEntity.ok(amenidadRepo.save(amenidad));
 
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", "Error al actualizar: " + e.getMessage()));
+            log.error("Error al actualizar amenidad con id: {}", id, e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Error al actualizar amenidad"));
         }
     }
 

@@ -2,7 +2,8 @@ package com.kaaj.api.controller;
 
 import com.kaaj.api.model.*;
 import com.kaaj.api.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,19 +14,15 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/seguridad")
 public class SeguridadController {
 
-    @Autowired
-    private VisitaRepository visitaRepo;
-
-    @Autowired
-    private EscaneoQrRepository escaneoQrRepo;
-
-    @Autowired
-    private AccesoSeguridadRepository accesoSeguridadRepo;
+    private final VisitaRepository visitaRepo;
+    private final EscaneoQrRepository escaneoQrRepo;
+    private final AccesoSeguridadRepository accesoSeguridadRepo;
 
     // Obtener visitas programadas para hoy
     @GetMapping("/visitas/hoy")
@@ -57,8 +54,9 @@ public class SeguridadController {
 
             return ResponseEntity.ok(visitasDto);
         } catch (Exception e) {
+            log.error("Error al obtener visitas de hoy", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error al obtener visitas: " + e.getMessage()));
+                    .body(Map.of("error", "Error al obtener visitas"));
         }
     }
 
@@ -66,7 +64,7 @@ public class SeguridadController {
     @PostMapping("/registrar-acceso")
     public ResponseEntity<?> registrarAcceso(@RequestBody Map<String, Object> request) {
         try {
-            System.out.println("=== REGISTRANDO ACCESO ===");
+            log.info("=== REGISTRANDO ACCESO ===");
 
             String qrTexto = (String) request.get("qrTexto");
             Integer guardiaId = (Integer) request.get("guardiaId");
@@ -79,7 +77,7 @@ public class SeguridadController {
             // Extraer código del QR
             String codigoQr = extraerCodigoQR(qrTexto);
 
-            System.out.println("Código QR extraído: " + codigoQr);
+            log.info("Código QR extraído: {}", codigoQr);
 
             if (codigoQr == null || codigoQr.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -90,15 +88,14 @@ public class SeguridadController {
             Optional<Visita> visitaOpt = visitaRepo.findByCodigoQr(codigoQr);
 
             if (visitaOpt.isEmpty()) {
-                System.out.println("QR no encontrado: " + codigoQr);
+                log.warn("QR no encontrado: {}", codigoQr);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("success", false, "message", "QR no encontrado en el sistema"));
             }
 
             Visita visita = visitaOpt.get();
-            System.out.println("Visita encontrada: " + visita.getNombreVisitante() +
-                             " | Fecha: " + visita.getFechaProgramada() +
-                             " | Hora: " + visita.getHoraProgramada());
+            log.info("Visita encontrada: {} | Fecha: {} | Hora: {}",
+                     visita.getNombreVisitante(), visita.getFechaProgramada(), visita.getHoraProgramada());
 
             LocalDate hoy = LocalDate.now();
             LocalTime ahora = LocalTime.now();
@@ -145,12 +142,12 @@ public class SeguridadController {
                     }
                 }
 
-                System.out.println("✅ QR válido para hoy - Hora dentro del rango permitido");
+                log.info("QR válido para hoy - Hora dentro del rango permitido");
             }
 
             // 4. Si es para fecha futura
             if (fechaVisita.isAfter(hoy)) {
-                System.out.println("📅 QR para fecha futura: " + fechaVisita);
+                log.info("QR para fecha futura: {}", fechaVisita);
                 // Permitir QR futuros
             }
 
@@ -160,7 +157,7 @@ public class SeguridadController {
             visita.setEstado(Visita.EstadoVisita.Utilizado);
             visita.setFechaUtilizacion(LocalDateTime.now());
             visitaRepo.save(visita);
-            System.out.println("✅ Estado actualizado a Utilizado");
+            log.info("Estado actualizado a Utilizado");
 
             // Registrar en EscaneoQr
             EscaneoQr escaneo = new EscaneoQr();
@@ -169,7 +166,7 @@ public class SeguridadController {
             escaneo.setUbicacion(visita.getCondominio());
             escaneo.setFechaEscaneo(LocalDateTime.now());
             escaneoQrRepo.save(escaneo);
-            System.out.println("✅ Escaneo registrado en BD - ID: " + escaneo.getId());
+            log.info("Escaneo registrado en BD - ID: {}", escaneo.getId());
 
             // Mensaje según fecha
             String mensajeExito;
@@ -200,9 +197,9 @@ public class SeguridadController {
             ));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error al registrar acceso", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("success", false, "message", "Error interno: " + e.getMessage()));
+                .body(Map.of("success", false, "message", "Error interno del servidor"));
         }
     }
 
@@ -236,7 +233,7 @@ public class SeguridadController {
             return qrTexto.trim();
 
         } catch (Exception e) {
-            System.out.println("Error extrayendo código QR: " + e.getMessage());
+            log.error("Error extrayendo código QR", e);
         }
 
         return qrTexto.trim();
@@ -265,8 +262,9 @@ public class SeguridadController {
 
             return ResponseEntity.ok(historial);
         } catch (Exception e) {
+            log.error("Error al obtener historial de escaneos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error: " + e.getMessage());
+                .body(Map.of("error", "Error al obtener historial"));
         }
     }
 
@@ -297,8 +295,9 @@ public class SeguridadController {
 
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
+            log.error("Error al obtener estadísticas de hoy", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error: " + e.getMessage());
+                .body(Map.of("error", "Error al obtener estadísticas"));
         }
     }
 }

@@ -6,7 +6,7 @@ import com.kaaj.api.model.Usuario;
 import com.kaaj.api.repository.ApartamentoRepository;
 import com.kaaj.api.repository.CondominioRepository;
 import com.kaaj.api.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,17 +16,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 public class ApartamentoService {
 
-    @Autowired
-    private ApartamentoRepository apartamentoRepository;
-
-    @Autowired
-    private CondominioRepository condominioRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final ApartamentoRepository apartamentoRepository;
+    private final CondominioRepository condominioRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Transactional(readOnly = true)
     public List<Apartamento> obtenerApartamentosPorCondominio(Integer condominioId) {

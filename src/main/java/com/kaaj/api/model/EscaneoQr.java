@@ -1,8 +1,14 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "escaneos_qr")
 public class EscaneoQr {
@@ -22,45 +28,4 @@ public class EscaneoQr {
 
     @Column(name = "ubicacion")
     private String ubicacion;
-
-    // Getters y Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Visita getVisita() {
-        return visita;
-    }
-
-    public void setVisita(Visita visita) {
-        this.visita = visita;
-    }
-
-    public LocalDateTime getFechaEscaneo() {
-        return fechaEscaneo;
-    }
-
-    public void setFechaEscaneo(LocalDateTime fechaEscaneo) {
-        this.fechaEscaneo = fechaEscaneo;
-    }
-
-    public String getDispositivo() {
-        return dispositivo;
-    }
-
-    public void setDispositivo(String dispositivo) {
-        this.dispositivo = dispositivo;
-    }
-
-    public String getUbicacion() {
-        return ubicacion;
-    }
-
-    public void setUbicacion(String ubicacion) {
-        this.ubicacion = ubicacion;
-    }
 }

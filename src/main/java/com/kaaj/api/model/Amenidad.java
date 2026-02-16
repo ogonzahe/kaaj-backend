@@ -1,9 +1,15 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.sql.Time;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "amenidades")
 public class Amenidad {
@@ -40,86 +46,6 @@ public class Amenidad {
     @Column(name = "creado_en", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private java.util.Date creadoEn;
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public Integer getCapacidad() {
-        return capacidad;
-    }
-
-    public void setCapacidad(Integer capacidad) {
-        this.capacidad = capacidad;
-    }
-
-    public EstadoAmenidad getEstado() {
-        return estado;
-    }
-
-    public void setEstado(EstadoAmenidad estado) {
-        this.estado = estado;
-    }
-
-    public Time getHoraApertura() {
-        return horaApertura;
-    }
-
-    public void setHoraApertura(Time horaApertura) {
-        this.horaApertura = horaApertura;
-    }
-
-    public Time getHoraCierre() {
-        return horaCierre;
-    }
-
-    public void setHoraCierre(Time horaCierre) {
-        this.horaCierre = horaCierre;
-    }
-
-    public String getDiasDisponibles() {
-        return diasDisponibles;
-    }
-
-    public void setDiasDisponibles(String diasDisponibles) {
-        this.diasDisponibles = diasDisponibles;
-    }
-
-    public Integer getCondominioId() {
-        return condominioId;
-    }
-
-    public void setCondominioId(Integer condominioId) {
-        this.condominioId = condominioId;
-    }
-
-    public java.util.Date getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(java.util.Date creadoEn) {
-        this.creadoEn = creadoEn;
-    }
 
     public enum EstadoAmenidad {
         activa, inactiva

@@ -2,10 +2,16 @@ package com.kaaj.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Date;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "egresos")
 public class Egreso {
@@ -24,7 +30,7 @@ public class Egreso {
     @Column(name = "mes")
     private Integer mes;
 
-    // SOLUCIÓN: Usar "anio" en Java pero mapear a "año" en la BD
+    // SOLUCION: Usar "anio" en Java pero mapear a "ano" en la BD
     @Column(name = "año")
     private Integer anio;
 
@@ -56,53 +62,9 @@ public class Egreso {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Usuario usuario;
 
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getConcepto() { return concepto; }
-    public void setConcepto(String concepto) { this.concepto = concepto; }
-
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-
-    public BigDecimal getMonto() { return monto; }
-    public void setMonto(BigDecimal monto) { this.monto = monto; }
-
-    public LocalDate getFecha() { return fecha; }
-    public void setFecha(LocalDate fecha) { this.fecha = fecha; }
-
-    public Integer getMes() { return mes; }
-    public void setMes(Integer mes) { this.mes = mes; }
-
-    // Usar getAnio() y setAnio() en Java
-    public Integer getAnio() { return anio; }
-    public void setAnio(Integer anio) { this.anio = anio; }
-
-    // Método para JSON - retornar como "año"
+    // Metodo para JSON - retornar como "ano"
     public Integer getAño() { return anio; }
     public void setAño(Integer año) { this.anio = año; }
-
-    public String getComprobanteUrl() { return comprobanteUrl; }
-    public void setComprobanteUrl(String comprobanteUrl) { this.comprobanteUrl = comprobanteUrl; }
-
-    public String getEstatus() { return estatus; }
-    public void setEstatus(String estatus) { this.estatus = estatus; }
-
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
-
-    public CategoriaEgreso getCategoria() { return categoria; }
-    public void setCategoria(CategoriaEgreso categoria) { this.categoria = categoria; }
-
-    public Condominio getCondominio() { return condominio; }
-    public void setCondominio(Condominio condominio) { this.condominio = condominio; }
-
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 
     // Pre-persist y pre-update
     @PrePersist

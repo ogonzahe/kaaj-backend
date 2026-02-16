@@ -1,9 +1,15 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "apartamentos")
 public class Apartamento {
@@ -56,60 +62,7 @@ public class Apartamento {
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
-    // Getters y Setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-
-    public Condominio getCondominio() { return condominio; }
-    public void setCondominio(Condominio condominio) { this.condominio = condominio; }
-
-    public String getEdificio() { return edificio; }
-    public void setEdificio(String edificio) { this.edificio = edificio; }
-
-    public String getNumero() { return numero; }
-    public void setNumero(String numero) { this.numero = numero; }
-
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
-
-    public BigDecimal getArea() { return area; }
-    public void setArea(BigDecimal area) { this.area = area; }
-
-    public Integer getHabitaciones() { return habitaciones; }
-    public void setHabitaciones(Integer habitaciones) { this.habitaciones = habitaciones; }
-
-    public Integer getBanos() { return banos; }
-    public void setBanos(Integer banos) { this.banos = banos; }
-
-    public Usuario getPropietario() { return propietario; }
-    public void setPropietario(Usuario propietario) { this.propietario = propietario; }
-
-    public Usuario getInquilino() { return inquilino; }
-    public void setInquilino(Usuario inquilino) { this.inquilino = inquilino; }
-
-    public Boolean getEstaAlquilado() { return estaAlquilado; }
-    public void setEstaAlquilado(Boolean estaAlquilado) { this.estaAlquilado = estaAlquilado; }
-
-    public Boolean getEstaHabitado() { return estaHabitado; }
-    public void setEstaHabitado(Boolean estaHabitado) { this.estaHabitado = estaHabitado; }
-
-    public BigDecimal getCuotaMantenimientoBase() { return cuotaMantenimientoBase; }
-    public void setCuotaMantenimientoBase(BigDecimal cuotaMantenimientoBase) {
-        this.cuotaMantenimientoBase = cuotaMantenimientoBase;
-    }
-
-    public String getObservaciones() { return observaciones; }
-    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
-
-    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
-    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
-
-    public LocalDateTime getFechaActualizacion() { return fechaActualizacion; }
-    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
-    // M??todo de conveniencia
+    // Metodo de conveniencia
     public String getDireccionCompleta() {
         return edificio + "-" + numero;
     }

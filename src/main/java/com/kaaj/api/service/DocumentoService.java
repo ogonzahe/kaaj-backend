@@ -10,12 +10,13 @@ import com.kaaj.api.repository.DocumentoRepository;
 import com.kaaj.api.repository.CategoriaDocumentoRepository;
 import com.kaaj.api.repository.CondominioRepository;
 import com.kaaj.api.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.util.Set;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,23 +27,46 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class DocumentoService {
 
-    @Autowired
-    private DocumentoRepository documentoRepository;
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+            ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp",
+            ".txt", ".csv", ".zip", ".rar"
+    );
 
-    @Autowired
-    private CategoriaDocumentoRepository categoriaDocumentoRepository;
+    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp",
+            "text/plain", "text/csv",
+            "application/zip", "application/x-rar-compressed"
+    );
 
-    @Autowired
-    private CondominioRepository condominioRepository;
+    private final DocumentoRepository documentoRepository;
+    private final CategoriaDocumentoRepository categoriaDocumentoRepository;
+    private final CondominioRepository condominioRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final String uploadDir;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    public DocumentoService(DocumentoRepository documentoRepository,
+                            CategoriaDocumentoRepository categoriaDocumentoRepository,
+                            CondominioRepository condominioRepository,
+                            UsuarioRepository usuarioRepository,
+                            @Value("${file.upload-dir}") String uploadDir) {
+        this.documentoRepository = documentoRepository;
+        this.categoriaDocumentoRepository = categoriaDocumentoRepository;
+        this.condominioRepository = condominioRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.uploadDir = uploadDir;
+    }
 
     private Path getUploadPath() throws IOException {
         Path path = Paths.get(uploadDir);
@@ -50,6 +74,23 @@ public class DocumentoService {
             Files.createDirectories(path);
         }
         return path;
+    }
+
+    private void validarTipoArchivo(MultipartFile archivo) {
+        String nombreOriginal = archivo.getOriginalFilename();
+        if (nombreOriginal != null) {
+            String extension = nombreOriginal.contains(".")
+                    ? nombreOriginal.substring(nombreOriginal.lastIndexOf(".")).toLowerCase()
+                    : "";
+            if (!ALLOWED_EXTENSIONS.contains(extension)) {
+                throw new RuntimeException("Tipo de archivo no permitido: " + extension);
+            }
+        }
+
+        String mimeType = archivo.getContentType();
+        if (mimeType != null && !ALLOWED_MIME_TYPES.contains(mimeType)) {
+            throw new RuntimeException("Tipo MIME no permitido: " + mimeType);
+        }
     }
 
     // NUEVO MÉTODO: Obtener categorías por condominio
@@ -143,6 +184,8 @@ public class DocumentoService {
             throw new RuntimeException("El archivo es demasiado grande. Máximo 10MB");
         }
 
+        validarTipoArchivo(archivo);
+
         Documento documento = new Documento();
         documento.setTitulo(documentoDTO.getTitulo());
         documento.setDescripcion(documentoDTO.getDescripcion());
@@ -221,11 +264,13 @@ public class DocumentoService {
                 throw new RuntimeException("El archivo es demasiado grande. Máximo 10MB");
             }
 
+            validarTipoArchivo(archivo);
+
             if (documento.getRutaArchivo() != null) {
                 try {
                     Files.deleteIfExists(Paths.get(documento.getRutaArchivo()));
                 } catch (IOException e) {
-                    System.err.println("Error al eliminar archivo anterior: " + e.getMessage());
+                    log.warn("Error al eliminar archivo anterior: {}", e.getMessage());
                 }
             }
 
@@ -351,7 +396,7 @@ public class DocumentoService {
                 Files.deleteIfExists(path);
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Advertencia: No se pudo borrar el archivo físico: " + e.getMessage());
+            log.warn("No se pudo borrar el archivo físico: {}", e.getMessage());
         }
 
         documentoRepository.delete(documento);

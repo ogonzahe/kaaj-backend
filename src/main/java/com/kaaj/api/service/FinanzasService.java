@@ -7,7 +7,8 @@ import com.kaaj.api.model.Saldo;
 import com.kaaj.api.repository.IngresoRepository;
 import com.kaaj.api.repository.EgresoRepository;
 import com.kaaj.api.repository.SaldoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,27 +22,22 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
+@RequiredArgsConstructor
 @Service
 public class FinanzasService {
 
-    @Autowired
-    private SaldoRepository saldoRepository;
-
-    @Autowired
-    private IngresoRepository ingresoRepository;
-
-    @Autowired
-    private EgresoRepository egresoRepository;
+    private final SaldoRepository saldoRepository;
+    private final IngresoRepository ingresoRepository;
+    private final EgresoRepository egresoRepository;
 
     @Transactional(readOnly = true)
     public Map<String, Object> getAllIngresosCompletos() {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            System.out.println("[SERVICE] getAllIngresosCompletos() iniciado");
-
             List<Ingreso> todosIngresos = ingresoRepository.findAll();
-            System.out.println("[SERVICE] Total ingresos en BD: " + todosIngresos.size());
+            log.debug("getAllIngresosCompletos - Total ingresos en BD: {}", todosIngresos.size());
 
             List<Map<String, Object>> ingresosData = new ArrayList<>();
 
@@ -76,7 +72,7 @@ public class FinanzasService {
                         ingresoMap.put("condominio_id", ingreso.getCondominio().getId());
                         ingresoMap.put("condominio_nombre", ingreso.getCondominio().getNombre());
                     } else {
-                        System.err.println("[SERVICE] Ingreso " + ingreso.getId() + " sin condominio asignado");
+                        log.warn("Ingreso {} sin condominio asignado", ingreso.getId());
                         ingresoMap.put("condominio_id", null);
                         ingresoMap.put("condominio_nombre", "Sin condominio");
                     }
@@ -108,20 +104,7 @@ public class FinanzasService {
                     ingresosData.add(ingresoMap);
 
                 } catch (Exception e) {
-                    System.err.println("[SERVICE] Error procesando ingreso " + ingreso.getId() + ": " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-
-            System.out.println("[SERVICE] Ingresos procesados exitosamente: " + ingresosData.size());
-
-            // DEPURACIÓN: Mostrar estructura del primer ingreso
-            if (!ingresosData.isEmpty()) {
-                Map<String, Object> primerIngreso = ingresosData.get(0);
-                System.out.println("[SERVICE] Estructura del primer ingreso:");
-                for (Map.Entry<String, Object> entry : primerIngreso.entrySet()) {
-                    System.out.println("  " + entry.getKey() + ": " + entry.getValue() +
-                            " (Tipo: " + (entry.getValue() != null ? entry.getValue().getClass().getSimpleName() : "null") + ")");
+                    log.error("Error procesando ingreso {}", ingreso.getId(), e);
                 }
             }
 
@@ -133,11 +116,10 @@ public class FinanzasService {
             return response;
 
         } catch (Exception e) {
-            System.err.println("[SERVICE] Error crítico en getAllIngresosCompletos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error crítico en getAllIngresosCompletos", e);
 
             response.put("success", false);
-            response.put("message", "Error al obtener ingresos: " + e.getMessage());
+            response.put("message", "Error al obtener ingresos");
             response.put("data", new ArrayList<>());
             response.put("total", 0);
 
@@ -150,10 +132,8 @@ public class FinanzasService {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            System.out.println("[SERVICE] getAllIngresosCompletosFrontend() - Formato específico para frontend");
-
             List<Ingreso> todosIngresos = ingresoRepository.findAll();
-            System.out.println("[SERVICE] Total ingresos encontrados: " + todosIngresos.size());
+            log.debug("getAllIngresosCompletosFrontend - Total ingresos: {}", todosIngresos.size());
 
             List<Map<String, Object>> ingresosData = new ArrayList<>();
 
@@ -204,11 +184,9 @@ public class FinanzasService {
                     ingresosData.add(ingresoMap);
 
                 } catch (Exception e) {
-                    System.err.println("[SERVICE] Error procesando ingreso frontend " + ingreso.getId() + ": " + e.getMessage());
+                    log.error("Error procesando ingreso frontend {}", ingreso.getId(), e);
                 }
             }
-
-            System.out.println("[SERVICE] Ingresos procesados para frontend: " + ingresosData.size());
 
             response.put("success", true);
             response.put("data", ingresosData);
@@ -223,11 +201,10 @@ public class FinanzasService {
             return response;
 
         } catch (Exception e) {
-            System.err.println("[SERVICE] Error en getAllIngresosCompletosFrontend: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en getAllIngresosCompletosFrontend", e);
 
             response.put("success", false);
-            response.put("message", "Error al obtener ingresos: " + e.getMessage());
+            response.put("message", "Error al obtener ingresos");
             response.put("data", new ArrayList<>());
             response.put("total", 0);
             response.put("totalMonto", 0);
@@ -241,10 +218,8 @@ public class FinanzasService {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            System.out.println("[SERVICE] getAllEgresosCompletos() iniciado");
-
             List<Egreso> todosEgresos = egresoRepository.findAll();
-            System.out.println("[SERVICE] Total egresos en BD: " + todosEgresos.size());
+            log.debug("getAllEgresosCompletos - Total egresos en BD: {}", todosEgresos.size());
 
             List<Map<String, Object>> egresosData = new ArrayList<>();
 
@@ -293,11 +268,9 @@ public class FinanzasService {
                     egresosData.add(egresoMap);
 
                 } catch (Exception e) {
-                    System.err.println("[SERVICE] Error procesando egreso " + egreso.getId() + ": " + e.getMessage());
+                    log.error("Error procesando egreso {}", egreso.getId(), e);
                 }
             }
-
-            System.out.println("[SERVICE] Egresos procesados exitosamente: " + egresosData.size());
 
             response.put("success", true);
             response.put("message", "Egresos obtenidos exitosamente");
@@ -306,11 +279,10 @@ public class FinanzasService {
             return response;
 
         } catch (Exception e) {
-            System.err.println("[SERVICE] Error crítico en getAllEgresosCompletos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error crítico en getAllEgresosCompletos", e);
 
             response.put("success", false);
-            response.put("message", "Error al obtener egresos: " + e.getMessage());
+            response.put("message", "Error al obtener egresos");
             response.put("data", new ArrayList<>());
 
             return response;

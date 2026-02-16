@@ -6,7 +6,8 @@ import com.kaaj.api.model.Apartamento;
 import com.kaaj.api.model.Usuario;
 import com.kaaj.api.repository.PagoProgramadoRepository;
 import com.kaaj.api.repository.SaldoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,33 +16,31 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
+@RequiredArgsConstructor
 @Component
 public class PagoRecurrenteJob {
 
-    @Autowired
-    private PagoProgramadoRepository pagoProgramadoRepository;
-
-    @Autowired
-    private SaldoRepository saldoRepository;
+    private final PagoProgramadoRepository pagoProgramadoRepository;
+    private final SaldoRepository saldoRepository;
 
     @Scheduled(cron = "0 0 8 * * ?") // Ejecutar todos los días a las 8 AM
     @Transactional
     public void generarPagosRecurrentes() {
-        System.out.println("=== EJECUTANDO JOB DE PAGOS RECURRENTES ===");
-        System.out.println("Fecha actual: " + LocalDate.now());
+        log.info("Ejecutando job de pagos recurrentes. Fecha: {}", LocalDate.now());
 
         List<PagoProgramado> pagosRecurrentes = pagoProgramadoRepository.findByEsRecurrenteTrue();
-        System.out.println("Pagos recurrentes encontrados: " + pagosRecurrentes.size());
+        log.info("Pagos recurrentes encontrados: {}", pagosRecurrentes.size());
 
         for (PagoProgramado pago : pagosRecurrentes) {
             try {
                 generarPagosParaPagoRecurrente(pago);
             } catch (Exception e) {
-                System.out.println("Error procesando pago recurrente ID " + pago.getId() + ": " + e.getMessage());
+                log.error("Error procesando pago recurrente ID {}", pago.getId(), e);
             }
         }
 
-        System.out.println("=== JOB DE PAGOS RECURRENTES COMPLETADO ===");
+        log.info("Job de pagos recurrentes completado");
     }
 
     private void generarPagosParaPagoRecurrente(PagoProgramado pago) {
@@ -56,8 +55,7 @@ public class PagoRecurrenteJob {
         if (diasDesdeInicio >= 0 && diasDesdeInicio % intervaloDias == 0) {
             int numeroRepeticion = (int) (diasDesdeInicio / intervaloDias) + 1;
 
-            System.out.println("Generando pago recurrente: " + pago.getConcepto() +
-                    ", Repetición #" + numeroRepeticion);
+            log.info("Generando pago recurrente: {}, Repetición #{}", pago.getConcepto(), numeroRepeticion);
 
             // Verificar si ya se generó esta repetición
             boolean yaGenerado = false;
@@ -103,9 +101,9 @@ public class PagoRecurrenteJob {
                     nuevosSaldos++;
                 }
 
-                System.out.println("Generados " + nuevosSaldos + " nuevos saldos para repetición #" + numeroRepeticion);
+                log.info("Generados {} nuevos saldos para repetición #{}", nuevosSaldos, numeroRepeticion);
             } else if (yaGenerado) {
-                System.out.println("La repetición #" + numeroRepeticion + " ya fue generada anteriormente");
+                log.debug("La repetición #{} ya fue generada anteriormente", numeroRepeticion);
             }
         }
     }

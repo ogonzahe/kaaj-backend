@@ -5,7 +5,7 @@ import com.kaaj.api.model.CategoriaDocumento;
 import com.kaaj.api.model.Condominio;
 import com.kaaj.api.repository.CategoriaDocumentoRepository;
 import com.kaaj.api.repository.CondominioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,14 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class CategoriaDocumentoService {
 
-    @Autowired
-    private CategoriaDocumentoRepository categoriaRepository;
-
-    @Autowired
-    private CondominioRepository condominioRepository;
+    private final CategoriaDocumentoRepository categoriaRepository;
+    private final CondominioRepository condominioRepository;
 
     @Transactional(readOnly = true)
     public Map<String, Object> obtenerTodasPorCondominio(Long condominioId) {

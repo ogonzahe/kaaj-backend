@@ -2,20 +2,19 @@ package com.kaaj.api.controller;
 
 import com.kaaj.api.dto.CategoriaDocumentoDTO;
 import com.kaaj.api.service.CategoriaDocumentoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api")
 public class CategoriaDocumentoController {
 
-    @Autowired
-    private CategoriaDocumentoService categoriaService;
+    private final CategoriaDocumentoService categoriaService;
 
     @GetMapping("/categorias-documentos")
     public ResponseEntity<?> obtenerCategorias(

@@ -3,7 +3,8 @@ package com.kaaj.api.controller;
 import com.kaaj.api.dto.DocumentoDTO;
 import com.kaaj.api.dto.CategoriaDocumentoDTO;
 import com.kaaj.api.service.DocumentoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,21 +12,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api")
 public class DocumentoController {
 
-    @Autowired
-    private DocumentoService documentoService;
-
-    // ========== ENDPOINTS PARA DOCUMENTOS ==========
+    private final DocumentoService documentoService;
 
     @PostMapping(value = "/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> crearDocumento(
@@ -39,19 +37,9 @@ public class DocumentoController {
             @RequestParam(value = "fechaVigencia", required = false) String fechaVigencia,
             @RequestParam(value = "esPublico", defaultValue = "true") Boolean esPublico,
             @RequestParam(value = "es_publico", defaultValue = "true") Boolean esPublicoAlt,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Long usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Long usuarioId) {
 
         try {
-            System.out.println("=== CREANDO DOCUMENTO ===");
-            System.out.println("titulo: " + titulo);
-            System.out.println("condominioId (1): " + condominioId);
-            System.out.println("condominio_id (2): " + condominioIdAlt);
-            System.out.println("categoriaId (1): " + categoriaId);
-            System.out.println("categoria_id (2): " + categoriaIdAlt);
-            System.out.println("esPublico (1): " + esPublico);
-            System.out.println("es_publico (2): " + esPublicoAlt);
-            System.out.println("usuarioId: " + usuarioId);
-
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
             Boolean esPublicoFinal = esPublicoAlt != null ? esPublicoAlt : esPublico;
@@ -77,11 +65,10 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al crear documento: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al crear documento", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al crear documento: " + e.getMessage());
+            error.put("message", "Error al crear documento");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -99,7 +86,7 @@ public class DocumentoController {
             @RequestParam(value = "fechaVigencia", required = false) String fechaVigencia,
             @RequestParam(value = "esPublico", defaultValue = "true") Boolean esPublico,
             @RequestParam(value = "es_publico", defaultValue = "true") Boolean esPublicoAlt,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Long usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Long usuarioId) {
 
         try {
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
@@ -127,9 +114,10 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al actualizar documento {}", id, e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al actualizar documento: " + e.getMessage());
+            error.put("message", "Error al actualizar documento");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -145,32 +133,18 @@ public class DocumentoController {
             @RequestHeader(value = "X-Condominio-Id", required = false) Long condominioUsuarioId) {
 
         try {
-            System.out.println("=== OBTENIENDO DOCUMENTOS (PÚBLICO) ===");
-            System.out.println("Usuario ID: " + usuarioId);
-            System.out.println("User Role: " + userRole);
-            System.out.println("Condominio Usuario: " + condominioUsuarioId);
-
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
 
             List<DocumentoDTO> documentos;
 
-            // LÓGICA MEJORADA: Documentos visibles según rol
             if ("admin_usuario".equals(userRole) || "COPO".equals(userRole)) {
-                // Admin/COPO ve TODOS los documentos (públicos y privados)
-                System.out.println("🔑 Admin/COPO: Mostrando TODOS los documentos");
                 documentos = documentoService.obtenerTodosDocumentos(condominioFinal, categoriaFinal);
             } else if ("USUARIO".equals(userRole) || "SEGURIDAD".equals(userRole)) {
-                // Usuario/seguridad ve documentos públicos + privados de SU condominio
-                System.out.println("👤 Usuario/Seguridad: Mostrando documentos del condominio " + condominioUsuarioId);
                 documentos = documentoService.obtenerDocumentosParaUsuario(condominioUsuarioId, condominioFinal, categoriaFinal);
             } else {
-                // Usuario no autenticado o rol desconocido: solo documentos públicos
-                System.out.println("👤 Usuario no autenticado: Mostrando solo documentos públicos");
                 documentos = documentoService.obtenerDocumentosPublicos(condominioFinal, categoriaFinal);
             }
-
-            System.out.println("Documentos encontrados: " + documentos.size());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -181,11 +155,10 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al obtener documentos: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener documentos", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener documentos: " + e.getMessage());
+            error.put("message", "Error al obtener documentos");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -199,9 +172,6 @@ public class DocumentoController {
             @RequestParam(value = "publicos", defaultValue = "false") Boolean publicos) {
 
         try {
-            System.out.println("=== OBTENIENDO DOCUMENTOS (ADMIN) ===");
-            System.out.println("publicos: " + publicos);
-
             Long condominioFinal = condominioId != null ? condominioId : condominioIdAlt;
             Long categoriaFinal = categoriaId != null ? categoriaId : categoriaIdAlt;
 
@@ -221,11 +191,10 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al obtener documentos admin: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener documentos admin", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener documentos: " + e.getMessage());
+            error.put("message", "Error al obtener documentos");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -242,6 +211,7 @@ public class DocumentoController {
             return new ResponseEntity<>(contenido, headers, HttpStatus.OK);
 
         } catch (Exception e) {
+            log.error("Error al descargar documento {}", id, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
@@ -249,7 +219,7 @@ public class DocumentoController {
     @DeleteMapping("/documentos/{id}")
     public ResponseEntity<?> eliminarDocumento(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Long usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Long usuarioId) {
 
         try {
             documentoService.eliminarDocumento(id, usuarioId);
@@ -261,25 +231,21 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al eliminar documento {}", id, e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al eliminar documento: " + e.getMessage());
+            error.put("message", "Error al eliminar documento");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
-    // ========== ENDPOINTS PARA CATEGORÍAS ==========
+    // ========== ENDPOINTS PARA CATEGORIAS ==========
 
     @GetMapping("/documentos/categorias")
     public ResponseEntity<?> obtenerCategorias(
             @RequestParam(value = "condominioId", required = false) Long condominioId) {
         try {
-            System.out.println("=== OBTENIENDO CATEGORÍAS ===");
-            System.out.println("condominioId: " + condominioId);
-
             List<CategoriaDocumentoDTO> categorias = documentoService.obtenerCategoriasPorCondominio(condominioId);
-
-            System.out.println("Categorías encontradas: " + categorias.size());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -288,11 +254,10 @@ public class DocumentoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al obtener categorías: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al obtener categorias", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener categorías: " + e.getMessage());
+            error.put("message", "Error al obtener categorias");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -300,25 +265,20 @@ public class DocumentoController {
     @PostMapping("/documentos/categorias")
     public ResponseEntity<?> crearCategoria(@RequestBody CategoriaDocumentoDTO categoriaDTO) {
         try {
-            System.out.println("=== CREANDO CATEGORÍA ===");
-            System.out.println("Nombre: " + categoriaDTO.getNombre());
-            System.out.println("CondominioId: " + categoriaDTO.getCondominioId());
-
             CategoriaDocumentoDTO creada = documentoService.crearCategoria(categoriaDTO);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Categoría creada exitosamente");
+            response.put("message", "Categoria creada exitosamente");
             response.put("categoria", creada);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al crear categoría: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al crear categoria", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al crear categoría: " + e.getMessage());
+            error.put("message", "Error al crear categoria");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -326,25 +286,20 @@ public class DocumentoController {
     @PutMapping("/documentos/categorias/{id}")
     public ResponseEntity<?> actualizarCategoria(@PathVariable Long id, @RequestBody CategoriaDocumentoDTO categoriaDTO) {
         try {
-            System.out.println("=== ACTUALIZANDO CATEGORÍA ===");
-            System.out.println("ID: " + id);
-            System.out.println("Nombre: " + categoriaDTO.getNombre());
-
             CategoriaDocumentoDTO actualizada = documentoService.actualizarCategoria(id, categoriaDTO);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Categoría actualizada exitosamente");
+            response.put("message", "Categoria actualizada exitosamente");
             response.put("categoria", actualizada);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al actualizar categoría: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al actualizar categoria {}", id, e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al actualizar categoría: " + e.getMessage());
+            error.put("message", "Error al actualizar categoria");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -352,23 +307,19 @@ public class DocumentoController {
     @DeleteMapping("/documentos/categorias/{id}")
     public ResponseEntity<?> eliminarCategoria(@PathVariable Long id) {
         try {
-            System.out.println("=== ELIMINANDO CATEGORÍA ===");
-            System.out.println("ID: " + id);
-
             documentoService.eliminarCategoria(id);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Categoría eliminada exitosamente");
+            response.put("message", "Categoria eliminada exitosamente");
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("ERROR al eliminar categoría: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error al eliminar categoria {}", id, e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al eliminar categoría: " + e.getMessage());
+            error.put("message", "Error al eliminar categoria");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

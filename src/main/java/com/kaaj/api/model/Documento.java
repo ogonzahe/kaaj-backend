@@ -1,9 +1,15 @@
 package com.kaaj.api.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "documentos")
 public class Documento {
@@ -62,120 +68,5 @@ public class Documento {
     @PreUpdate
     protected void onUpdate() {
         actualizadoEn = LocalDateTime.now();
-    }
-
-    public Documento() {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public String getNombreArchivo() {
-        return nombreArchivo;
-    }
-
-    public void setNombreArchivo(String nombreArchivo) {
-        this.nombreArchivo = nombreArchivo;
-    }
-
-    public String getRutaArchivo() {
-        return rutaArchivo;
-    }
-
-    public void setRutaArchivo(String rutaArchivo) {
-        this.rutaArchivo = rutaArchivo;
-    }
-
-    public Long getTamanio() {
-        return tamanio;
-    }
-
-    public void setTamanio(Long tamanio) {
-        this.tamanio = tamanio;
-    }
-
-    public String getMimeType() {
-        return mimeType;
-    }
-
-    public void setMimeType(String mimeType) {
-        this.mimeType = mimeType;
-    }
-
-    public Condominio getCondominio() {
-        return condominio;
-    }
-
-    public void setCondominio(Condominio condominio) {
-        this.condominio = condominio;
-    }
-
-    public CategoriaDocumento getCategoria() {
-        return categoria;
-    }
-
-    public void setCategoria(CategoriaDocumento categoria) {
-        this.categoria = categoria;
-    }
-
-    public Boolean getEsPublico() {
-        return esPublico;
-    }
-
-    public void setEsPublico(Boolean esPublico) {
-        this.esPublico = esPublico;
-    }
-
-    public LocalDate getFechaVigencia() {
-        return fechaVigencia;
-    }
-
-    public void setFechaVigencia(LocalDate fechaVigencia) {
-        this.fechaVigencia = fechaVigencia;
-    }
-
-    public LocalDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(LocalDateTime creadoEn) {
-        this.creadoEn = creadoEn;
-    }
-
-    public Usuario getCreadoPor() {
-        return creadoPor;
-    }
-
-    public void setCreadoPor(Usuario creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
-    public LocalDateTime getActualizadoEn() {
-        return actualizadoEn;
-    }
-
-    public void setActualizadoEn(LocalDateTime actualizadoEn) {
-        this.actualizadoEn = actualizadoEn;
     }
 }

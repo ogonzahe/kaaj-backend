@@ -4,7 +4,7 @@ import com.kaaj.api.model.*;
 import com.kaaj.api.repository.*;
 import com.kaaj.api.service.StripeService;
 import com.kaaj.api.dto.CrearPagoProgramadoDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,31 +15,34 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@Slf4j
 @RestController
 @RequestMapping("/api/pagos")
 public class PagoController {
 
-    @Autowired
-    private StripeService stripeService;
+    private final StripeService stripeService;
+    private final UsuarioRepository usuarioRepository;
+    private final SaldoRepository saldoRepository;
+    private final PagoStripeRepository pagoStripeRepository;
+    private final PagoProgramadoRepository pagoProgramadoRepository;
+    private final CondominioRepository condominioRepository;
+    private final String stripePublicKey;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private SaldoRepository saldoRepository;
-
-    @Autowired
-    private PagoStripeRepository pagoStripeRepository;
-
-    @Autowired
-    private PagoProgramadoRepository pagoProgramadoRepository;
-
-    @Autowired
-    private CondominioRepository condominioRepository;
-
-    @Value("${stripe.api.public-key}")
-    private String stripePublicKey;
+    public PagoController(StripeService stripeService,
+                          UsuarioRepository usuarioRepository,
+                          SaldoRepository saldoRepository,
+                          PagoStripeRepository pagoStripeRepository,
+                          PagoProgramadoRepository pagoProgramadoRepository,
+                          CondominioRepository condominioRepository,
+                          @Value("${stripe.api.public-key}") String stripePublicKey) {
+        this.stripeService = stripeService;
+        this.usuarioRepository = usuarioRepository;
+        this.saldoRepository = saldoRepository;
+        this.pagoStripeRepository = pagoStripeRepository;
+        this.pagoProgramadoRepository = pagoProgramadoRepository;
+        this.condominioRepository = condominioRepository;
+        this.stripePublicKey = stripePublicKey;
+    }
 
     @GetMapping("/admin/categorias-pagos")
     public ResponseEntity<?> obtenerCategoriasPagos() {
@@ -55,9 +58,10 @@ public class PagoController {
 
             return ResponseEntity.ok(categorias);
         } catch (Exception e) {
+            log.error("Error al obtener categorías de pagos", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -80,9 +84,10 @@ public class PagoController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Error al crear categoría de pago", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -122,9 +127,10 @@ public class PagoController {
 
             return ResponseEntity.ok(pagosFormateados);
         } catch (Exception e) {
+            log.error("Error al obtener pagos programados", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -189,9 +195,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al crear pago recurrente", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -285,7 +292,7 @@ public class PagoController {
                 pago.put("monto", saldo.getMonto());
                 pago.put("fechaLimite", saldo.getFechaLimite());
                 pago.put("pagado", saldo.getPagado());
-                pago.put("esRecurrente", saldo.isEsRecurrente());
+                pago.put("esRecurrente", saldo.getEsRecurrente());
                 pago.put("numeroRepeticion", saldo.getNumeroRepeticion());
                 pago.put("pagoProgramadoId", saldo.getPagoProgramadoId());
 
@@ -309,9 +316,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al obtener pagos generados", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -338,9 +346,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al marcar pago como pagado", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -364,9 +373,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al eliminar pago programado", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -380,8 +390,9 @@ public class PagoController {
             config.put("currency", "MXN");
             return ResponseEntity.ok(config);
         } catch (Exception e) {
+            log.error("Error al obtener configuración de Stripe", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error: " + e.getMessage());
+                    .body("Error al procesar la solicitud");
         }
     }
 
@@ -426,7 +437,7 @@ public class PagoController {
                     saldoActual = saldo.getMonto();
                 }
                 saldoMap.put("saldoActual", saldoActual);
-                saldoMap.put("esRecurrente", saldo.isEsRecurrente());
+                saldoMap.put("esRecurrente", saldo.getEsRecurrente());
                 saldoMap.put("numeroRepeticion", saldo.getNumeroRepeticion());
                 saldoMap.put("pagoProgramadoId", saldo.getPagoProgramadoId());
 
@@ -446,10 +457,11 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al obtener saldos pendientes", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("error", "Error al obtener saldos pendientes");
-            error.put("message", e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -497,9 +509,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al crear intento de pago", e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al crear intento de pago");
-            error.put("message", e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             error.put("timestamp", LocalDateTime.now().toString());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
@@ -634,9 +647,10 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error al confirmar el pago", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al confirmar el pago: " + e.getMessage());
+            error.put("message", "Error al confirmar el pago");
             error.put("timestamp", LocalDateTime.now().toString());
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -696,9 +710,10 @@ public class PagoController {
             return crearPagoRecurrente(dto);
 
         } catch (Exception e) {
+            log.error("Error al crear pago programado", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -745,20 +760,11 @@ public class PagoController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error en migración de clientes Stripe", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error en migración: " + e.getMessage());
+            error.put("message", "Error al procesar la solicitud");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
-    }
-
-    @GetMapping("/test")
-    public ResponseEntity<?> test() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "ok");
-        response.put("service", "StripeService " + (stripeService != null ? "disponible" : "NO disponible"));
-        response.put("publicKey", stripePublicKey != null ? "Configurada" : "No configurada");
-        response.put("timestamp", LocalDateTime.now().toString());
-        return ResponseEntity.ok(response);
     }
 }

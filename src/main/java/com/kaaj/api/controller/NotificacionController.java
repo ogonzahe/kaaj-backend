@@ -8,7 +8,8 @@ import com.kaaj.api.repository.NotificacionRepository;
 import com.kaaj.api.repository.UsuarioRepository;
 import com.kaaj.api.repository.UsuarioCondominioRepository;
 import com.kaaj.api.service.NotificacionService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,29 +19,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 
-@CrossOrigin(origins = "*")
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/notificaciones")
 public class NotificacionController {
 
-    @Autowired
-    private NotificacionService notificacionService;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private UsuarioCondominioRepository usuarioCondominioRepository;
-
-    @Autowired
-    private NotificacionRepository notificacionRepository;
+    private final NotificacionService notificacionService;
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioCondominioRepository usuarioCondominioRepository;
+    private final NotificacionRepository notificacionRepository;
 
     // ========== MÉTODOS PARA ADMIN ==========
 
     // 1. GET: Obtener todas las notificaciones (para admin con múltiples condominios)
     @GetMapping
     public ResponseEntity<?> obtenerTodasNotificacionesAdmin(
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId,
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId,
             @RequestParam(value = "condominiosIds", required = false) List<Integer> condominiosIds) {
         try {
             // Verificar que el usuario es administrador
@@ -67,14 +62,16 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
         } catch (Exception e) {
+            log.error("Error al obtener notificaciones", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener notificaciones: " + e.getMessage());
+            error.put("message", "Error al obtener notificaciones");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -83,7 +80,7 @@ public class NotificacionController {
     @PostMapping
     public ResponseEntity<?> crearNotificacion(
             @RequestBody NotificacionRequestDTO dto,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             // Verificar que el usuario es administrador
             Usuario admin = usuarioRepository.findById(usuarioId)
@@ -119,6 +116,7 @@ public class NotificacionController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -126,7 +124,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al crear notificación: " + e.getMessage());
+            log.error("Error al crear notificación", e);
+            error.put("message", "Error al crear notificación");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -135,7 +134,7 @@ public class NotificacionController {
     @PutMapping("/{id}/leer")
     public ResponseEntity<?> marcarComoLeida(
             @PathVariable Integer id,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -169,6 +168,7 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -176,7 +176,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al marcar notificación como leída: " + e.getMessage());
+            log.error("Error al marcar notificación como leída", e);
+            error.put("message", "Error al marcar notificación como leída");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -185,7 +186,7 @@ public class NotificacionController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminarNotificacion(
             @PathVariable Integer id,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             Usuario admin = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -212,6 +213,7 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -219,7 +221,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al eliminar notificación: " + e.getMessage());
+            log.error("Error al eliminar notificación", e);
+            error.put("message", "Error al eliminar notificación");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -229,7 +232,7 @@ public class NotificacionController {
     // 5. GET: Obtener mis notificaciones (para residentes) - CORREGIDO
     @GetMapping("/mis-notificaciones")
     public ResponseEntity<?> obtenerMisNotificaciones(
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -261,7 +264,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener notificaciones: " + e.getMessage());
+            log.error("Error al obtener mis notificaciones", e);
+            error.put("message", "Error al obtener notificaciones");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -269,7 +273,7 @@ public class NotificacionController {
     // 6. GET: Obtener notificaciones no leídas (para frontend) - CORREGIDO
     @GetMapping("/no-leidas")
     public ResponseEntity<?> obtenerNotificacionesNoLeidas(
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             Usuario usuario = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -307,7 +311,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener notificaciones no leídas: " + e.getMessage());
+            log.error("Error al obtener notificaciones no leídas", e);
+            error.put("message", "Error al obtener notificaciones no leídas");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -341,7 +346,7 @@ public class NotificacionController {
     @GetMapping("/condominio/{condominioId}")
     public ResponseEntity<?> obtenerNotificacionesPorCondominio(
             @PathVariable Integer condominioId,
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             // Verificar que el usuario es administrador
             Usuario admin = usuarioRepository.findById(usuarioId)
@@ -367,6 +372,7 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -374,7 +380,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener notificaciones: " + e.getMessage());
+            log.error("Error al obtener notificaciones por condominio", e);
+            error.put("message", "Error al obtener notificaciones");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -382,7 +389,7 @@ public class NotificacionController {
     // 8. GET: Obtener estadísticas de notificaciones (CORREGIDO)
     @GetMapping("/estadisticas")
     public ResponseEntity<?> obtenerEstadisticas(
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             // Verificar que el usuario es administrador
             Usuario admin = usuarioRepository.findById(usuarioId)
@@ -420,6 +427,7 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -427,7 +435,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener estadísticas: " + e.getMessage());
+            log.error("Error al obtener estadísticas de notificaciones", e);
+            error.put("message", "Error al obtener estadísticas");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -435,7 +444,7 @@ public class NotificacionController {
     // 9. GET: Obtener condominios del admin (para frontend)
     @GetMapping("/mis-condominios")
     public ResponseEntity<?> obtenerMisCondominios(
-            @RequestHeader(value = "X-Usuario-Id", defaultValue = "1") Integer usuarioId) {
+            @RequestHeader(value = "X-Usuario-Id") Integer usuarioId) {
         try {
             Usuario admin = usuarioRepository.findById(usuarioId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -473,6 +482,7 @@ public class NotificacionController {
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.warn("Forbidden: {}", e.getMessage());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", e.getMessage());
@@ -480,7 +490,8 @@ public class NotificacionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "Error al obtener condominios: " + e.getMessage());
+            log.error("Error al obtener condominios del admin", e);
+            error.put("message", "Error al obtener condominios");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
