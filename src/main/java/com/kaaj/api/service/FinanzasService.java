@@ -33,98 +33,110 @@ public class FinanzasService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getAllIngresosCompletos() {
+        return wrapIngresosResponse(ingresoRepository.findAll(), "getAllIngresosCompletos");
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getIngresosFiltrados(List<Long> condominioIds, Integer año) {
+        if (condominioIds != null && !condominioIds.isEmpty() && año != null) {
+            return wrapIngresosResponse(
+                    ingresoRepository.findByCondominioIdInAndAnio(condominioIds, año),
+                    "getIngresosFiltrados[condominios+año]");
+        }
+        if (condominioIds != null && !condominioIds.isEmpty()) {
+            return wrapIngresosResponse(
+                    ingresoRepository.findByCondominioIdIn(condominioIds),
+                    "getIngresosFiltrados[condominios]");
+        }
+        if (año != null) {
+            return wrapIngresosResponse(
+                    ingresoRepository.findByAnio(año),
+                    "getIngresosFiltrados[año]");
+        }
+        return getAllIngresosCompletos();
+    }
+
+    private Map<String, Object> wrapIngresosResponse(List<Ingreso> ingresos, String contexto) {
         Map<String, Object> response = new HashMap<>();
-
         try {
-            List<Ingreso> todosIngresos = ingresoRepository.findAll();
-            log.debug("getAllIngresosCompletos - Total ingresos en BD: {}", todosIngresos.size());
-
+            log.debug("{} - Total ingresos: {}", contexto, ingresos.size());
             List<Map<String, Object>> ingresosData = new ArrayList<>();
-
-            for (Ingreso ingreso : todosIngresos) {
+            for (Ingreso ingreso : ingresos) {
                 try {
-                    Map<String, Object> ingresoMap = new HashMap<>();
-
-                    ingresoMap.put("id", ingreso.getId());
-                    ingresoMap.put("concepto", ingreso.getConcepto() != null ? ingreso.getConcepto() : "Sin concepto");
-                    ingresoMap.put("descripcion", ingreso.getDescripcion() != null ? ingreso.getDescripcion() : "");
-                    ingresoMap.put("monto", ingreso.getMonto() != null ? ingreso.getMonto() : BigDecimal.ZERO);
-
-                    if (ingreso.getFecha() != null) {
-                        ingresoMap.put("fecha", ingreso.getFecha().toString());
-                    } else {
-                        ingresoMap.put("fecha", LocalDate.now().toString());
-                    }
-
-                    ingresoMap.put("mes", ingreso.getMes() != null ? ingreso.getMes() : 0);
-
-                    // CORRECCIÓN CRÍTICA: Usar getAnio() que mapea la columna "año" de la BD
-                    // Agregar ambos campos para compatibilidad
-                    Integer anio = ingreso.getAnio();
-                    ingresoMap.put("año", anio != null ? anio : LocalDate.now().getYear());
-                    ingresoMap.put("anio", anio != null ? anio : LocalDate.now().getYear());
-
-                    ingresoMap.put("estatus", ingreso.getEstatus() != null ? ingreso.getEstatus() : "pagado");
-                    ingresoMap.put("comprobante_url", ingreso.getComprobanteUrl());
-
-                    // Condominio - asegurar que siempre tenga ID
-                    if (ingreso.getCondominio() != null && ingreso.getCondominio().getId() != null) {
-                        ingresoMap.put("condominio_id", ingreso.getCondominio().getId());
-                        ingresoMap.put("condominio_nombre", ingreso.getCondominio().getNombre());
-                    } else {
-                        log.warn("Ingreso {} sin condominio asignado", ingreso.getId());
-                        ingresoMap.put("condominio_id", null);
-                        ingresoMap.put("condominio_nombre", "Sin condominio");
-                    }
-
-                    // Usuario - puede ser null
-                    if (ingreso.getUsuario() != null && ingreso.getUsuario().getId() != null) {
-                        ingresoMap.put("usuario_id", ingreso.getUsuario().getId());
-                        ingresoMap.put("usuario_nombre", ingreso.getUsuario().getNombre());
-                    } else {
-                        ingresoMap.put("usuario_id", null);
-                        ingresoMap.put("usuario_nombre", "Sistema");
-                    }
-
-                    // Categoría
-                    if (ingreso.getCategoria() != null) {
-                        ingresoMap.put("categoria_id", ingreso.getCategoria().getId());
-                        ingresoMap.put("categoria_nombre", ingreso.getCategoria().getNombre());
-                        ingresoMap.put("color", ingreso.getCategoria().getColor() != null ?
-                            ingreso.getCategoria().getColor() : "#4CAF50");
-                    } else {
-                        ingresoMap.put("categoria_nombre", "General");
-                        ingresoMap.put("color", "#4CAF50");
-                    }
-
-                    // Fechas de creación
-                    ingresoMap.put("created_at", ingreso.getCreatedAt());
-                    ingresoMap.put("updated_at", ingreso.getUpdatedAt());
-
-                    ingresosData.add(ingresoMap);
-
+                    ingresosData.add(mapIngresoCompleto(ingreso));
                 } catch (Exception e) {
                     log.error("Error procesando ingreso {}", ingreso.getId(), e);
                 }
             }
-
             response.put("success", true);
             response.put("message", "Ingresos obtenidos exitosamente");
             response.put("data", ingresosData);
             response.put("total", ingresosData.size());
-
             return response;
-
         } catch (Exception e) {
-            log.error("Error crítico en getAllIngresosCompletos", e);
-
+            log.error("Error crítico en {}", contexto, e);
             response.put("success", false);
             response.put("message", "Error al obtener ingresos");
             response.put("data", new ArrayList<>());
             response.put("total", 0);
-
             return response;
         }
+    }
+
+    private Map<String, Object> mapIngresoCompleto(Ingreso ingreso) {
+        Map<String, Object> ingresoMap = new HashMap<>();
+
+        ingresoMap.put("id", ingreso.getId());
+        ingresoMap.put("concepto", ingreso.getConcepto() != null ? ingreso.getConcepto() : "Sin concepto");
+        ingresoMap.put("descripcion", ingreso.getDescripcion() != null ? ingreso.getDescripcion() : "");
+        ingresoMap.put("monto", ingreso.getMonto() != null ? ingreso.getMonto() : BigDecimal.ZERO);
+
+        if (ingreso.getFecha() != null) {
+            ingresoMap.put("fecha", ingreso.getFecha().toString());
+        } else {
+            ingresoMap.put("fecha", LocalDate.now().toString());
+        }
+
+        ingresoMap.put("mes", ingreso.getMes() != null ? ingreso.getMes() : 0);
+
+        Integer anio = ingreso.getAnio();
+        ingresoMap.put("año", anio != null ? anio : LocalDate.now().getYear());
+        ingresoMap.put("anio", anio != null ? anio : LocalDate.now().getYear());
+
+        ingresoMap.put("estatus", ingreso.getEstatus() != null ? ingreso.getEstatus() : "pagado");
+        ingresoMap.put("comprobante_url", ingreso.getComprobanteUrl());
+
+        if (ingreso.getCondominio() != null && ingreso.getCondominio().getId() != null) {
+            ingresoMap.put("condominio_id", ingreso.getCondominio().getId());
+            ingresoMap.put("condominio_nombre", ingreso.getCondominio().getNombre());
+        } else {
+            log.warn("Ingreso {} sin condominio asignado", ingreso.getId());
+            ingresoMap.put("condominio_id", null);
+            ingresoMap.put("condominio_nombre", "Sin condominio");
+        }
+
+        if (ingreso.getUsuario() != null && ingreso.getUsuario().getId() != null) {
+            ingresoMap.put("usuario_id", ingreso.getUsuario().getId());
+            ingresoMap.put("usuario_nombre", ingreso.getUsuario().getNombre());
+        } else {
+            ingresoMap.put("usuario_id", null);
+            ingresoMap.put("usuario_nombre", "Sistema");
+        }
+
+        if (ingreso.getCategoria() != null) {
+            ingresoMap.put("categoria_id", ingreso.getCategoria().getId());
+            ingresoMap.put("categoria_nombre", ingreso.getCategoria().getNombre());
+            ingresoMap.put("color", ingreso.getCategoria().getColor() != null ?
+                ingreso.getCategoria().getColor() : "#4CAF50");
+        } else {
+            ingresoMap.put("categoria_nombre", "General");
+            ingresoMap.put("color", "#4CAF50");
+        }
+
+        ingresoMap.put("created_at", ingreso.getCreatedAt());
+        ingresoMap.put("updated_at", ingreso.getUpdatedAt());
+
+        return ingresoMap;
     }
 
     @Transactional(readOnly = true)

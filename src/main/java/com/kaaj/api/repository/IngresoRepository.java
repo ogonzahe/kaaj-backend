@@ -34,4 +34,17 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Long> {
     @Query("SELECT i FROM Ingreso i WHERE i.condominio.id = :condominioId AND i.anio = :año ORDER BY i.mes DESC")
     List<Ingreso> findUltimosMeses(@Param("condominioId") Long condominioId, @Param("año") Integer año,
             org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT i FROM Ingreso i LEFT JOIN FETCH i.condominio LEFT JOIN FETCH i.usuario LEFT JOIN FETCH i.categoria " +
+           "WHERE i.condominio.id IN :condominioIds")
+    List<Ingreso> findByCondominioIdIn(@Param("condominioIds") List<Long> condominioIds);
+
+    @Query("SELECT i FROM Ingreso i LEFT JOIN FETCH i.condominio LEFT JOIN FETCH i.usuario LEFT JOIN FETCH i.categoria " +
+           "WHERE i.condominio.id IN :condominioIds AND i.anio = :año")
+    List<Ingreso> findByCondominioIdInAndAnio(@Param("condominioIds") List<Long> condominioIds,
+                                              @Param("año") Integer año);
+
+    @Query("SELECT i FROM Ingreso i LEFT JOIN FETCH i.condominio LEFT JOIN FETCH i.usuario LEFT JOIN FETCH i.categoria " +
+           "WHERE i.anio = :año")
+    List<Ingreso> findByAnio(@Param("año") Integer año);
 }

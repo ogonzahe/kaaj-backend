@@ -87,19 +87,31 @@ public class ReservaController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuario no encontrado");
             }
 
-            // Validar que el usuario no tenga otra reserva el mismo d??a
-            Reserva reservaExistente = reservaRepo.findByUsuarioAndDiaAndMesAndAnio(usuario, dia, mes, anio);
+            // Validar que la amenidad existe y obtener su capacidad
+            Amenidad amenidad = amenidadRepo.findByNombre(amenidadNombre);
+            if (amenidad == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Amenidad no encontrada: " + amenidadNombre);
+            }
+            int capacidad = amenidad.getCapacidad() != null && amenidad.getCapacidad() > 0
+                    ? amenidad.getCapacidad()
+                    : 1;
+
+            // Regla: un usuario solo puede tener una reserva por amenidad por dia
+            // (puede tener reservas en distintas amenidades el mismo dia).
+            Reserva reservaExistente = reservaRepo.findByUsuarioAndAmenidadAndDiaAndMesAndAnio(
+                    usuario, amenidadNombre, dia, mes, anio);
             if (reservaExistente != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Ya tienes una reserva para este d??a");
+                        .body("Ya tienes una reserva en esta amenidad para este día");
             }
 
-            // Validar que la amenidad no est?? reservada en ese horario
-            Reserva conflictoAmenidad = reservaRepo.findByAmenidadAndDiaAndMesAndAnioAndHoraInicio(
+            // El slot esta lleno solo cuando se alcanza la capacidad de la amenidad.
+            long reservasEnSlot = reservaRepo.countByAmenidadAndDiaAndMesAndAnioAndHoraInicio(
                     amenidadNombre, dia, mes, anio, horaInicio);
-            if (conflictoAmenidad != null) {
+            if (reservasEnSlot >= capacidad) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("La amenidad ya est?? reservada en este horario");
+                        .body("Esta amenidad ya está completa en este horario");
             }
 
             // Crear la reserva
@@ -127,6 +139,53 @@ public class ReservaController {
             log.error("Error creando reserva", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al crear reserva");
+        }
+    }
+
+    // Cancelar (eliminar) una reserva
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> cancelarReserva(
+            @PathVariable Integer id,
+            @RequestHeader(value = "X-Usuario-Id", required = false) Integer usuarioId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        try {
+            Reserva reserva = reservaRepo.findById(id).orElse(null);
+            if (reserva == null) {
+                Map<String, Object> notFound = new HashMap<>();
+                notFound.put("success", false);
+                notFound.put("message", "Reserva no encontrada");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(notFound);
+            }
+
+            // Validar permisos: dueño de la reserva, admin del condominio o COPO.
+            boolean esDueno = usuarioId != null
+                    && reserva.getUsuario() != null
+                    && usuarioId.equals(reserva.getUsuario().getId());
+            boolean esAdmin = "admin_usuario".equalsIgnoreCase(userRole)
+                    || "COPO".equalsIgnoreCase(userRole);
+
+            if (!esDueno && !esAdmin) {
+                Map<String, Object> forbidden = new HashMap<>();
+                forbidden.put("success", false);
+                forbidden.put("message", "No tienes permisos para cancelar esta reserva");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(forbidden);
+            }
+
+            reservaRepo.delete(reserva);
+            log.info("Reserva {} cancelada por usuario {}", id, usuarioId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Reserva cancelada exitosamente");
+            response.put("deletedId", id);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error cancelando reserva {}", id, e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al cancelar la reserva");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 

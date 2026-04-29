@@ -448,4 +448,47 @@ public interface SaldoRepository extends JpaRepository<Saldo, Long> {
            "WHERE s.usuario.id = :usuarioId AND s.monto > 0 AND s.pagado = false " +
            "ORDER BY s.fechaLimite DESC")
     List<Object[]> findEgresosByUsuarioId(@Param("usuarioId") Integer usuarioId);
+
+    // ========== MULTI-CONDOMINIO ==========
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.usuario.condominio.id IN :condominioIds")
+    List<Saldo> findByUsuarioCondominioIdIn(@Param("condominioIds") List<Long> condominioIds);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.usuario.condominio.id IN :condominioIds AND YEAR(s.fechaLimite) = :año")
+    List<Saldo> findByUsuarioCondominioIdInAndAnio(@Param("condominioIds") List<Long> condominioIds,
+                                                   @Param("año") Integer año);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE YEAR(s.fechaLimite) = :año")
+    List<Saldo> findByAnio(@Param("año") Integer año);
+
+    @Query("SELECT COALESCE(SUM(s.monto), 0) FROM Saldo s WHERE s.pagado = true AND s.monto > 0 " +
+           "AND s.usuario.condominio.id IN :condominioIds " +
+           "AND s.fechaLimite BETWEEN :fechaInicio AND :fechaFin")
+    BigDecimal calcularIngresosCondominios(@Param("condominioIds") List<Long> condominioIds,
+                                           @Param("fechaInicio") LocalDate fechaInicio,
+                                           @Param("fechaFin") LocalDate fechaFin);
+
+    @Query("SELECT COALESCE(SUM(s.monto), 0) FROM Saldo s WHERE s.pagado = false AND s.monto > 0 " +
+           "AND s.usuario.condominio.id IN :condominioIds " +
+           "AND s.fechaLimite BETWEEN :fechaInicio AND :fechaFin")
+    BigDecimal calcularEgresosCondominios(@Param("condominioIds") List<Long> condominioIds,
+                                          @Param("fechaInicio") LocalDate fechaInicio,
+                                          @Param("fechaFin") LocalDate fechaFin);
+
+    @Query("SELECT COUNT(s) FROM Saldo s WHERE s.usuario.condominio.id IN :condominioIds " +
+           "AND s.fechaLimite BETWEEN :fechaInicio AND :fechaFin " +
+           "AND s.monto > 0 AND s.pagado = true")
+    long countIngresosCondominios(@Param("condominioIds") List<Long> condominioIds,
+                                  @Param("fechaInicio") LocalDate fechaInicio,
+                                  @Param("fechaFin") LocalDate fechaFin);
+
+    @Query("SELECT COUNT(s) FROM Saldo s WHERE s.usuario.condominio.id IN :condominioIds " +
+           "AND s.fechaLimite BETWEEN :fechaInicio AND :fechaFin " +
+           "AND s.monto > 0 AND s.pagado = false")
+    long countEgresosCondominios(@Param("condominioIds") List<Long> condominioIds,
+                                 @Param("fechaInicio") LocalDate fechaInicio,
+                                 @Param("fechaFin") LocalDate fechaFin);
 }

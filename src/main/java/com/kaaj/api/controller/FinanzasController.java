@@ -30,11 +30,16 @@ public class FinanzasController {
     private final UsuarioRepository usuarioRepository;
 
     @GetMapping("/ingresos")
-    public ResponseEntity<?> getAllIngresos() {
+    public ResponseEntity<?> getAllIngresos(
+            @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
+            @RequestParam(value = "año", required = false) Integer año) {
         try {
-            log.info("GET /api/finanzas/ingresos llamado");
+            List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            log.info("GET /api/finanzas/ingresos llamado (condominioIds={}, año={})", condominioIds, año);
 
-            Map<String, Object> result = finanzasService.getAllIngresosCompletos();
+            Map<String, Object> result = (condominioIds != null || año != null)
+                    ? finanzasService.getIngresosFiltrados(condominioIds, año)
+                    : finanzasService.getAllIngresosCompletos();
 
             List<Map<String, Object>> ingresos = new ArrayList<>();
             if (result != null && result.containsKey("data")) {
@@ -130,11 +135,23 @@ public class FinanzasController {
     }
 
     @GetMapping("/gastos")
-    public ResponseEntity<?> getGastos() {
+    public ResponseEntity<?> getGastos(
+            @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
+            @RequestParam(value = "año", required = false) Integer año) {
         try {
-            log.info("GET /api/finanzas/gastos llamado");
+            List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            log.info("GET /api/finanzas/gastos llamado (condominioIds={}, año={})", condominioIds, año);
 
-            List<Saldo> gastos = saldoRepository.findAll();
+            List<Saldo> gastos;
+            if (condominioIds != null && año != null) {
+                gastos = saldoRepository.findByUsuarioCondominioIdInAndAnio(condominioIds, año);
+            } else if (condominioIds != null) {
+                gastos = saldoRepository.findByUsuarioCondominioIdIn(condominioIds);
+            } else if (año != null) {
+                gastos = saldoRepository.findByAnio(año);
+            } else {
+                gastos = saldoRepository.findAll();
+            }
 
             log.info("Gastos encontrados: {}", gastos.size());
 
@@ -294,9 +311,12 @@ public class FinanzasController {
     @GetMapping("/resumen-mensual")
     public ResponseEntity<?> getResumenMensual(
             @RequestParam(value = "condominioId", required = false) Long condominioId,
+            @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
             @RequestParam(value = "año", required = false) Integer año) {
         try {
             int targetYear = año != null ? año : LocalDate.now().getYear();
+            List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            boolean usarMulti = condominioIds != null;
 
             List<Map<String, Object>> resumenMensual = new ArrayList<>();
 
@@ -304,26 +324,30 @@ public class FinanzasController {
                 LocalDate inicioMes = LocalDate.of(targetYear, month, 1);
                 LocalDate finMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
 
-                BigDecimal totalIngresos = condominioId != null
-                        ? saldoRepository.calcularIngresosCondominio(condominioId, inicioMes, finMes)
-                        : saldoRepository.calcularIngresosTotales(inicioMes, finMes);
+                BigDecimal totalIngresos;
+                BigDecimal totalEgresos;
+                long countIngresos;
+                long countEgresos;
 
-                BigDecimal totalEgresos = condominioId != null
-                        ? saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes)
-                        : saldoRepository.calcularEgresosTotales(inicioMes, finMes);
+                if (usarMulti) {
+                    totalIngresos = saldoRepository.calcularIngresosCondominios(condominioIds, inicioMes, finMes);
+                    totalEgresos = saldoRepository.calcularEgresosCondominios(condominioIds, inicioMes, finMes);
+                    countIngresos = saldoRepository.countIngresosCondominios(condominioIds, inicioMes, finMes);
+                    countEgresos = saldoRepository.countEgresosCondominios(condominioIds, inicioMes, finMes);
+                } else if (condominioId != null) {
+                    totalIngresos = saldoRepository.calcularIngresosCondominio(condominioId, inicioMes, finMes);
+                    totalEgresos = saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes);
+                    countIngresos = saldoRepository.countIngresosCondominio(condominioId, inicioMes, finMes);
+                    countEgresos = saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes);
+                } else {
+                    totalIngresos = saldoRepository.calcularIngresosTotales(inicioMes, finMes);
+                    totalEgresos = saldoRepository.calcularEgresosTotales(inicioMes, finMes);
+                    countIngresos = saldoRepository.countIngresosTotales(inicioMes, finMes);
+                    countEgresos = saldoRepository.countEgresosTotales(inicioMes, finMes);
+                }
 
-                if (totalIngresos == null)
-                    totalIngresos = BigDecimal.ZERO;
-                if (totalEgresos == null)
-                    totalEgresos = BigDecimal.ZERO;
-
-                long countIngresos = condominioId != null
-                        ? saldoRepository.countIngresosCondominio(condominioId, inicioMes, finMes)
-                        : saldoRepository.countIngresosTotales(inicioMes, finMes);
-
-                long countEgresos = condominioId != null
-                        ? saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes)
-                        : saldoRepository.countEgresosTotales(inicioMes, finMes);
+                if (totalIngresos == null) totalIngresos = BigDecimal.ZERO;
+                if (totalEgresos == null) totalEgresos = BigDecimal.ZERO;
 
                 Map<String, Object> mesData = new HashMap<>();
                 mesData.put("mes", month);
@@ -637,5 +661,20 @@ public class FinanzasController {
             error.put("message", "Error al obtener saldos pendientes");
             return ResponseEntity.internalServerError().body(error);
         }
+    }
+
+    private List<Long> parseCondominioIds(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        List<Long> ids = new ArrayList<>();
+        for (String token : raw.split(",")) {
+            String trimmed = token.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                ids.add(Long.parseLong(trimmed));
+            } catch (NumberFormatException ignored) {
+                log.warn("condominioIds: token no numérico ignorado: '{}'", trimmed);
+            }
+        }
+        return ids.isEmpty() ? null : ids;
     }
 }

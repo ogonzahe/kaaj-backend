@@ -33,6 +33,22 @@ public interface ReservaRepository extends JpaRepository<Reserva, Integer> {
             @Param("anio") Integer anio,
             @Param("horaInicio") LocalTime horaInicio);
 
+    @Query("SELECT COUNT(r) FROM Reserva r WHERE r.amenidad = :amenidad AND r.dia = :dia AND r.mes = :mes AND r.anio = :anio AND r.horaInicio = :horaInicio")
+    long countByAmenidadAndDiaAndMesAndAnioAndHoraInicio(
+            @Param("amenidad") String amenidad,
+            @Param("dia") Integer dia,
+            @Param("mes") Integer mes,
+            @Param("anio") Integer anio,
+            @Param("horaInicio") LocalTime horaInicio);
+
+    @Query("SELECT r FROM Reserva r WHERE r.usuario = :usuario AND r.amenidad = :amenidad AND r.dia = :dia AND r.mes = :mes AND r.anio = :anio")
+    Reserva findByUsuarioAndAmenidadAndDiaAndMesAndAnio(
+            @Param("usuario") Usuario usuario,
+            @Param("amenidad") String amenidad,
+            @Param("dia") Integer dia,
+            @Param("mes") Integer mes,
+            @Param("anio") Integer anio);
+
     // ========== MÉTODO NUEVO AGREGADO (PARA ELIMINACIÓN DE USUARIOS) ==========
     @Query("SELECT r FROM Reserva r WHERE r.usuario.id = :usuarioId")
     List<Reserva> findByUsuarioId(@Param("usuarioId") Integer usuarioId);

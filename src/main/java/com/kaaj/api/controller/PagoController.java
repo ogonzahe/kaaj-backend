@@ -135,6 +135,107 @@ public class PagoController {
         }
     }
 
+    @PutMapping("/admin/editar-pago-programado/{id}")
+    public ResponseEntity<?> editarPagoProgramado(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> request) {
+        try {
+            PagoProgramado pago = pagoProgramadoRepository.findById(id).orElse(null);
+            if (pago == null) {
+                Map<String, Object> notFound = new HashMap<>();
+                notFound.put("success", false);
+                notFound.put("message", "Pago programado no encontrado");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(notFound);
+            }
+
+            BigDecimal montoAnterior = pago.getMonto();
+
+            if (request.containsKey("concepto")) {
+                pago.setConcepto((String) request.get("concepto"));
+            }
+            if (request.containsKey("descripcion")) {
+                pago.setDescripcion((String) request.get("descripcion"));
+            }
+            if (request.containsKey("categoria")) {
+                pago.setCategoria((String) request.get("categoria"));
+            }
+            if (request.get("monto") != null) {
+                Object montoObj = request.get("monto");
+                BigDecimal nuevoMonto;
+                if (montoObj instanceof Number) {
+                    nuevoMonto = BigDecimal.valueOf(((Number) montoObj).doubleValue());
+                } else {
+                    nuevoMonto = new BigDecimal(montoObj.toString());
+                }
+                pago.setMonto(nuevoMonto);
+            }
+            if (request.get("fechaInicio") != null && !((String) request.get("fechaInicio")).isBlank()) {
+                pago.setFechaInicio(LocalDate.parse((String) request.get("fechaInicio")));
+            }
+            if (request.containsKey("fechaLimite")) {
+                Object raw = request.get("fechaLimite");
+                if (raw == null || ((String) raw).isBlank()) {
+                    pago.setFechaLimite(null);
+                } else {
+                    pago.setFechaLimite(LocalDate.parse((String) raw));
+                }
+            }
+            if (request.get("esRecurrente") != null) {
+                pago.setEsRecurrente((Boolean) request.get("esRecurrente"));
+            }
+            if (request.get("repeticiones") != null) {
+                pago.setRepeticiones(((Number) request.get("repeticiones")).intValue());
+            }
+
+            PagoProgramado actualizado = pagoProgramadoRepository.save(pago);
+
+            // Propagar cambios a los saldos no pagados generados por este pago programado.
+            // Saldos ya pagados se dejan intactos para preservar el historial.
+            int saldosActualizados = 0;
+            List<Saldo> saldos = saldoRepository.findByPagoProgramadoId(id);
+            for (Saldo saldo : saldos) {
+                if (Boolean.TRUE.equals(saldo.getPagado())) continue;
+
+                saldo.setConcepto(actualizado.getConcepto());
+                saldo.setDescripcion(actualizado.getDescripcion());
+                saldo.setCategoria(actualizado.getCategoria());
+
+                if (actualizado.getMonto() != null) {
+                    BigDecimal saldoActual = saldo.getSaldoActual();
+                    boolean saldoSinTocar = saldoActual == null
+                            || (montoAnterior != null && saldoActual.compareTo(montoAnterior) == 0);
+                    saldo.setMonto(actualizado.getMonto());
+                    if (saldoSinTocar) {
+                        saldo.setSaldoActual(actualizado.getMonto());
+                    }
+                }
+
+                if (actualizado.getFechaLimite() != null) {
+                    saldo.setFechaLimite(actualizado.getFechaLimite());
+                }
+
+                saldoRepository.save(saldo);
+                saldosActualizados++;
+            }
+
+            log.info("Pago programado {} actualizado. Saldos pendientes refrescados: {}", id, saldosActualizados);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Pago programado actualizado exitosamente");
+            response.put("pagoProgramadoId", actualizado.getId());
+            response.put("saldosActualizados", saldosActualizados);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error al editar pago programado {}", id, e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al editar pago programado");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     @PostMapping("/admin/crear-pago-recurrente")
     public ResponseEntity<?> crearPagoRecurrente(@RequestBody CrearPagoProgramadoDTO request) {
         try {
@@ -266,7 +367,12 @@ public class PagoController {
                 saldo.setNumeroRepeticion(1);
                 saldo.setPagoProgramadoId(pagoProgramado.getId());
                 saldo.setFechaPago(pagoProgramado.getFechaInicio());
-                saldo.setFechaLimite(pagoProgramado.getFechaLimite());
+                // Si el admin no especifico fechaLimite, usar fechaInicio para que el saldo
+                // tenga una fecha visible en lugar de "No definida".
+                LocalDate fechaLimiteSaldo = pagoProgramado.getFechaLimite() != null
+                        ? pagoProgramado.getFechaLimite()
+                        : pagoProgramado.getFechaInicio();
+                saldo.setFechaLimite(fechaLimiteSaldo);
                 saldo.setTipoPago("PROGRAMADO");
                 saldo.setUltimoMovimiento(new java.sql.Timestamp(System.currentTimeMillis()));
 
@@ -431,6 +537,10 @@ public class PagoController {
                 } else {
                     saldoMap.put("fechaLimite", null);
                 }
+
+                // Exponer fechaPago como respaldo para saldos legacy con fechaLimite NULL.
+                saldoMap.put("fechaPago",
+                        saldo.getFechaPago() != null ? saldo.getFechaPago().toString() : null);
 
                 BigDecimal saldoActual = saldo.getSaldoActual();
                 if (saldoActual == null) {
