@@ -17,7 +17,7 @@
     <artifactId>kaaj-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>kaaj-backend</name>
-    <description>Backend del proyecto Kaaj</description>
+    <description>Backend del proyecto Kaaj.</description>
 
     <properties>
         <java.version>17</java.version>
