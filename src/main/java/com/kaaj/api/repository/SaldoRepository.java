@@ -491,4 +491,40 @@ public interface SaldoRepository extends JpaRepository<Saldo, Long> {
     long countEgresosCondominios(@Param("condominioIds") List<Long> condominioIds,
                                  @Param("fechaInicio") LocalDate fechaInicio,
                                  @Param("fechaFin") LocalDate fechaFin);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = true AND s.monto > 0")
+    List<Saldo> findIngresosPagados();
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = true AND s.monto > 0 AND u.condominio.id IN :condominioIds")
+    List<Saldo> findIngresosPagadosByCondominioIds(@Param("condominioIds") List<Long> condominioIds);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = true AND s.monto > 0 AND YEAR(s.fechaLimite) = :año")
+    List<Saldo> findIngresosPagadosByAnio(@Param("año") Integer año);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = true AND s.monto > 0 AND u.condominio.id IN :condominioIds " +
+           "AND YEAR(s.fechaLimite) = :año")
+    List<Saldo> findIngresosPagadosByCondominioIdsAndAnio(@Param("condominioIds") List<Long> condominioIds,
+                                                         @Param("año") Integer año);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = false AND s.monto > 0")
+    List<Saldo> findPorCobrar();
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = false AND s.monto > 0 AND u.condominio.id IN :condominioIds")
+    List<Saldo> findPorCobrarByCondominioIds(@Param("condominioIds") List<Long> condominioIds);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = false AND s.monto > 0 AND YEAR(s.fechaLimite) = :año")
+    List<Saldo> findPorCobrarByAnio(@Param("año") Integer año);
+
+    @Query("SELECT s FROM Saldo s LEFT JOIN FETCH s.usuario u LEFT JOIN FETCH u.condominio " +
+           "WHERE s.pagado = false AND s.monto > 0 AND u.condominio.id IN :condominioIds " +
+           "AND YEAR(s.fechaLimite) = :año")
+    List<Saldo> findPorCobrarByCondominioIdsAndAnio(@Param("condominioIds") List<Long> condominioIds,
+                                                   @Param("año") Integer año);
 }

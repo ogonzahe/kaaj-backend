@@ -1,8 +1,12 @@
 package com.kaaj.api.controller;
 
 import com.kaaj.api.dto.FinanzasDTO;
+import com.kaaj.api.model.Condominio;
+import com.kaaj.api.model.Egreso;
 import com.kaaj.api.model.Saldo;
 import com.kaaj.api.model.Usuario;
+import com.kaaj.api.repository.CondominioRepository;
+import com.kaaj.api.repository.EgresoRepository;
 import com.kaaj.api.repository.SaldoRepository;
 import com.kaaj.api.repository.UsuarioRepository;
 import com.kaaj.api.service.FinanzasService;
@@ -28,48 +32,47 @@ public class FinanzasController {
     private final FinanzasService finanzasService;
     private final SaldoRepository saldoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EgresoRepository egresoRepository;
+    private final CondominioRepository condominioRepository;
 
     @GetMapping("/ingresos")
     public ResponseEntity<?> getAllIngresos(
             @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
+            @RequestParam(value = "condominioId", required = false) Long condominioIdSingle,
             @RequestParam(value = "año", required = false) Integer año) {
         try {
             List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            if (condominioIds == null && condominioIdSingle != null) {
+                condominioIds = List.of(condominioIdSingle);
+            }
             log.info("GET /api/finanzas/ingresos llamado (condominioIds={}, año={})", condominioIds, año);
 
-            Map<String, Object> result = (condominioIds != null || año != null)
-                    ? finanzasService.getIngresosFiltrados(condominioIds, año)
-                    : finanzasService.getAllIngresosCompletos();
-
-            List<Map<String, Object>> ingresos = new ArrayList<>();
-            if (result != null && result.containsKey("data")) {
-                ingresos = (List<Map<String, Object>>) result.get("data");
+            List<Saldo> ingresosPagados;
+            if (condominioIds != null && año != null) {
+                ingresosPagados = saldoRepository.findIngresosPagadosByCondominioIdsAndAnio(condominioIds, año);
+            } else if (condominioIds != null) {
+                ingresosPagados = saldoRepository.findIngresosPagadosByCondominioIds(condominioIds);
+            } else if (año != null) {
+                ingresosPagados = saldoRepository.findIngresosPagadosByAnio(año);
+            } else {
+                ingresosPagados = saldoRepository.findIngresosPagados();
             }
 
-            log.info("Ingresos encontrados: {}", ingresos.size());
+            List<Map<String, Object>> ingresos = ingresosPagados.stream()
+                    .map(this::mapSaldoToFinanzaRow)
+                    .toList();
+
+            log.info("Ingresos (saldos pagados) encontrados: {}", ingresos.size());
+
+            BigDecimal totalMonto = ingresos.stream()
+                    .map(i -> (BigDecimal) i.get("monto"))
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("data", ingresos);
             response.put("total", ingresos.size());
-
-            BigDecimal totalMonto = BigDecimal.ZERO;
-            for (Map<String, Object> ingreso : ingresos) {
-                if (ingreso != null && ingreso.get("monto") != null) {
-                    Object montoObj = ingreso.get("monto");
-                    try {
-                        if (montoObj instanceof BigDecimal) {
-                            totalMonto = totalMonto.add((BigDecimal) montoObj);
-                        } else if (montoObj instanceof Number) {
-                            totalMonto = totalMonto.add(BigDecimal.valueOf(((Number) montoObj).doubleValue()));
-                        } else if (montoObj instanceof String) {
-                            totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
-                        }
-                    } catch (Exception e) {
-                        log.warn("Error al procesar monto: {}", montoObj, e);
-                    }
-                }
-            }
             response.put("totalMonto", totalMonto);
 
             return ResponseEntity.ok(response);
@@ -84,42 +87,113 @@ public class FinanzasController {
         }
     }
 
-    @GetMapping("/egresos")
-    public ResponseEntity<?> getAllEgresos() {
+    @GetMapping("/por-cobrar")
+    public ResponseEntity<?> getPorCobrar(
+            @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
+            @RequestParam(value = "condominioId", required = false) Long condominioIdSingle,
+            @RequestParam(value = "año", required = false) Integer año) {
         try {
-            log.info("GET /api/finanzas/egresos llamado");
+            List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            if (condominioIds == null && condominioIdSingle != null) {
+                condominioIds = List.of(condominioIdSingle);
+            }
+            log.info("GET /api/finanzas/por-cobrar (condominioIds={}, año={})", condominioIds, año);
 
-            Map<String, Object> result = finanzasService.getAllEgresosCompletos();
-
-            List<Map<String, Object>> egresos = new ArrayList<>();
-            if (result != null && result.containsKey("data")) {
-                egresos = (List<Map<String, Object>>) result.get("data");
+            List<Saldo> pendientes;
+            if (condominioIds != null && año != null) {
+                pendientes = saldoRepository.findPorCobrarByCondominioIdsAndAnio(condominioIds, año);
+            } else if (condominioIds != null) {
+                pendientes = saldoRepository.findPorCobrarByCondominioIds(condominioIds);
+            } else if (año != null) {
+                pendientes = saldoRepository.findPorCobrarByAnio(año);
+            } else {
+                pendientes = saldoRepository.findPorCobrar();
             }
 
+            List<Map<String, Object>> data = pendientes.stream()
+                    .map(this::mapSaldoToFinanzaRow)
+                    .toList();
+
+            BigDecimal totalMonto = data.stream()
+                    .map(i -> (BigDecimal) i.get("monto"))
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", data);
+            response.put("total", data.size());
+            response.put("totalMonto", totalMonto);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error en GET /api/finanzas/por-cobrar", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al obtener saldos por cobrar");
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    private Map<String, Object> mapSaldoToFinanzaRow(Saldo saldo) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", saldo.getId());
+        map.put("concepto", saldo.getConcepto());
+        map.put("descripcion", saldo.getDescripcion());
+        map.put("monto", saldo.getMonto());
+        map.put("fecha", saldo.getFechaPago() != null ? saldo.getFechaPago() : saldo.getFechaLimite());
+        map.put("fechaLimite", saldo.getFechaLimite());
+        map.put("pagado", saldo.getPagado());
+        Long condominioId = null;
+        if (saldo.getUsuario() != null && saldo.getUsuario().getCondominio() != null
+                && saldo.getUsuario().getCondominio().getId() != null) {
+            condominioId = saldo.getUsuario().getCondominio().getId().longValue();
+        } else if (saldo.getCondominio() != null && saldo.getCondominio().getId() != null) {
+            condominioId = saldo.getCondominio().getId().longValue();
+        }
+        map.put("condominio_id", condominioId);
+        map.put("usuario_id", saldo.getUsuario() != null ? saldo.getUsuario().getId() : null);
+        return map;
+    }
+
+    @GetMapping("/egresos")
+    public ResponseEntity<?> getAllEgresos(
+            @RequestParam(value = "condominioIds", required = false) String condominioIdsRaw,
+            @RequestParam(value = "condominioId", required = false) Long condominioIdSingle,
+            @RequestParam(value = "año", required = false) Integer año) {
+        try {
+            List<Long> condominioIds = parseCondominioIds(condominioIdsRaw);
+            if (condominioIds == null && condominioIdSingle != null) {
+                condominioIds = List.of(condominioIdSingle);
+            }
+            log.info("GET /api/finanzas/egresos llamado (condominioIds={}, año={})", condominioIds, año);
+
+            List<Egreso> egresosEntities;
+            if (condominioIds != null && año != null) {
+                egresosEntities = egresoRepository.findByCondominioIdInAndAnio(condominioIds, año);
+            } else if (condominioIds != null) {
+                egresosEntities = egresoRepository.findByCondominioIdIn(condominioIds);
+            } else if (año != null) {
+                egresosEntities = egresoRepository.findByAnio(año);
+            } else {
+                egresosEntities = egresoRepository.findAll();
+            }
+
+            List<Map<String, Object>> egresos = egresosEntities.stream()
+                    .map(this::mapEgresoToRow)
+                    .toList();
+
             log.info("Egresos encontrados: {}", egresos.size());
+
+            BigDecimal totalMonto = egresos.stream()
+                    .map(e -> (BigDecimal) e.get("monto"))
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("data", egresos);
             response.put("total", egresos.size());
-
-            BigDecimal totalMonto = BigDecimal.ZERO;
-            for (Map<String, Object> egreso : egresos) {
-                if (egreso != null && egreso.get("monto") != null) {
-                    Object montoObj = egreso.get("monto");
-                    try {
-                        if (montoObj instanceof BigDecimal) {
-                            totalMonto = totalMonto.add((BigDecimal) montoObj);
-                        } else if (montoObj instanceof Number) {
-                            totalMonto = totalMonto.add(BigDecimal.valueOf(((Number) montoObj).doubleValue()));
-                        } else if (montoObj instanceof String) {
-                            totalMonto = totalMonto.add(new BigDecimal((String) montoObj));
-                        }
-                    } catch (Exception e) {
-                        log.warn("Error al procesar monto: {}", montoObj, e);
-                    }
-                }
-            }
             response.put("totalMonto", totalMonto);
 
             return ResponseEntity.ok(response);
@@ -132,6 +206,23 @@ public class FinanzasController {
             error.put("message", "Error al obtener egresos");
             return ResponseEntity.internalServerError().body(error);
         }
+    }
+
+    private Map<String, Object> mapEgresoToRow(Egreso egreso) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", egreso.getId());
+        map.put("concepto", egreso.getConcepto());
+        map.put("descripcion", egreso.getDescripcion());
+        map.put("monto", egreso.getMonto() != null ? egreso.getMonto() : BigDecimal.ZERO);
+        map.put("fecha", egreso.getFecha() != null ? egreso.getFecha().toString() : null);
+        map.put("mes", egreso.getMes());
+        map.put("año", egreso.getAño());
+        map.put("estatus", egreso.getEstatus());
+        map.put("condominio_id",
+                egreso.getCondominio() != null ? egreso.getCondominio().getId() : null);
+        map.put("usuario_id",
+                egreso.getUsuario() != null ? egreso.getUsuario().getId() : null);
+        return map;
     }
 
     @GetMapping("/gastos")
@@ -325,28 +416,37 @@ public class FinanzasController {
                 LocalDate finMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
 
                 BigDecimal totalIngresos;
+                BigDecimal totalPorCobrar;
                 BigDecimal totalEgresos;
                 long countIngresos;
+                long countPorCobrar;
                 long countEgresos;
 
                 if (usarMulti) {
                     totalIngresos = saldoRepository.calcularIngresosCondominios(condominioIds, inicioMes, finMes);
-                    totalEgresos = saldoRepository.calcularEgresosCondominios(condominioIds, inicioMes, finMes);
+                    totalPorCobrar = saldoRepository.calcularEgresosCondominios(condominioIds, inicioMes, finMes);
+                    totalEgresos = egresoRepository.calcularEgresosCondominiosPorFecha(condominioIds, inicioMes, finMes);
                     countIngresos = saldoRepository.countIngresosCondominios(condominioIds, inicioMes, finMes);
-                    countEgresos = saldoRepository.countEgresosCondominios(condominioIds, inicioMes, finMes);
+                    countPorCobrar = saldoRepository.countEgresosCondominios(condominioIds, inicioMes, finMes);
+                    countEgresos = egresoRepository.countEgresosCondominiosPorFecha(condominioIds, inicioMes, finMes);
                 } else if (condominioId != null) {
                     totalIngresos = saldoRepository.calcularIngresosCondominio(condominioId, inicioMes, finMes);
-                    totalEgresos = saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes);
+                    totalPorCobrar = saldoRepository.calcularEgresosCondominio(condominioId, inicioMes, finMes);
+                    totalEgresos = egresoRepository.calcularEgresosCondominioPorFecha(condominioId, inicioMes, finMes);
                     countIngresos = saldoRepository.countIngresosCondominio(condominioId, inicioMes, finMes);
-                    countEgresos = saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes);
+                    countPorCobrar = saldoRepository.countEgresosCondominio(condominioId, inicioMes, finMes);
+                    countEgresos = egresoRepository.countEgresosCondominioPorFecha(condominioId, inicioMes, finMes);
                 } else {
                     totalIngresos = saldoRepository.calcularIngresosTotales(inicioMes, finMes);
-                    totalEgresos = saldoRepository.calcularEgresosTotales(inicioMes, finMes);
+                    totalPorCobrar = saldoRepository.calcularEgresosTotales(inicioMes, finMes);
+                    totalEgresos = egresoRepository.calcularEgresosTotalesPorFecha(inicioMes, finMes);
                     countIngresos = saldoRepository.countIngresosTotales(inicioMes, finMes);
-                    countEgresos = saldoRepository.countEgresosTotales(inicioMes, finMes);
+                    countPorCobrar = saldoRepository.countEgresosTotales(inicioMes, finMes);
+                    countEgresos = egresoRepository.countEgresosTotalesPorFecha(inicioMes, finMes);
                 }
 
                 if (totalIngresos == null) totalIngresos = BigDecimal.ZERO;
+                if (totalPorCobrar == null) totalPorCobrar = BigDecimal.ZERO;
                 if (totalEgresos == null) totalEgresos = BigDecimal.ZERO;
 
                 Map<String, Object> mesData = new HashMap<>();
@@ -354,8 +454,9 @@ public class FinanzasController {
                 mesData.put("año", targetYear);
                 mesData.put("totalIngresos", totalIngresos);
                 mesData.put("totalEgresos", totalEgresos);
+                mesData.put("totalPorCobrar", totalPorCobrar);
                 mesData.put("balance", totalIngresos.subtract(totalEgresos));
-                mesData.put("cantidadTransacciones", countIngresos + countEgresos);
+                mesData.put("cantidadTransacciones", countIngresos + countEgresos + countPorCobrar);
                 mesData.put("nombreMes", inicioMes.getMonth().getDisplayName(
                         java.time.format.TextStyle.FULL,
                         new Locale("es", "MX")));
@@ -483,6 +584,105 @@ public class FinanzasController {
             error.put("success", false);
             log.error("Error al crear gasto", e);
             error.put("message", "Error al crear gasto");
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @PostMapping("/egresos")
+    public ResponseEntity<?> crearEgreso(@RequestBody Map<String, Object> egresoData) {
+        try {
+            Egreso nuevoEgreso = new Egreso();
+            nuevoEgreso.setConcepto((String) egresoData.get("concepto"));
+            nuevoEgreso.setDescripcion((String) egresoData.get("descripcion"));
+
+            Object montoObj = egresoData.get("monto");
+            BigDecimal monto;
+            if (montoObj instanceof Number) {
+                monto = BigDecimal.valueOf(((Number) montoObj).doubleValue());
+            } else if (montoObj instanceof String) {
+                monto = new BigDecimal((String) montoObj);
+            } else {
+                monto = BigDecimal.ZERO;
+            }
+            nuevoEgreso.setMonto(monto);
+
+            LocalDate fecha;
+            if (egresoData.get("fecha") != null) {
+                fecha = LocalDate.parse((String) egresoData.get("fecha"));
+            } else {
+                fecha = LocalDate.now();
+            }
+            nuevoEgreso.setFecha(fecha);
+            nuevoEgreso.setMes(fecha.getMonthValue());
+            nuevoEgreso.setAño(fecha.getYear());
+
+            if (egresoData.get("estatus") != null) {
+                nuevoEgreso.setEstatus((String) egresoData.get("estatus"));
+            } else {
+                nuevoEgreso.setEstatus("pagado");
+            }
+
+            Object condominioIdObj = egresoData.get("condominio_id");
+            if (condominioIdObj == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "condominio_id es obligatorio");
+                return ResponseEntity.badRequest().body(error);
+            }
+            int condominioIdInt = ((Number) condominioIdObj).intValue();
+            Optional<Condominio> condominioOpt = condominioRepository.findById(condominioIdInt);
+            if (condominioOpt.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "Condominio no encontrado");
+                return ResponseEntity.status(404).body(error);
+            }
+            nuevoEgreso.setCondominio(condominioOpt.get());
+
+            if (egresoData.get("usuario_id") != null) {
+                int usuarioId = ((Number) egresoData.get("usuario_id")).intValue();
+                usuarioRepository.findById(usuarioId).ifPresent(nuevoEgreso::setUsuario);
+            }
+
+            Egreso guardado = egresoRepository.save(nuevoEgreso);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", mapEgresoToRow(guardado));
+            response.put("message", "Egreso creado exitosamente");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error al crear egreso", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al crear egreso");
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @DeleteMapping("/egresos/{id}")
+    public ResponseEntity<?> eliminarEgreso(@PathVariable Long id) {
+        try {
+            if (!egresoRepository.existsById(id)) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "Egreso no encontrado");
+                return ResponseEntity.status(404).body(error);
+            }
+
+            egresoRepository.deleteById(id);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Egreso eliminado exitosamente");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error al eliminar egreso", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Error al eliminar egreso");
             return ResponseEntity.internalServerError().body(error);
         }
     }
