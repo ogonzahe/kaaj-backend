@@ -88,7 +88,12 @@ public class ReservaController {
             }
 
             // Validar que la amenidad existe y obtener su capacidad
-            Amenidad amenidad = amenidadRepo.findByNombre(amenidadNombre);
+            Integer condominioId = usuario.getCondominioId();
+            if (condominioId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("El usuario no tiene un condominio asignado");
+            }
+            Amenidad amenidad = amenidadRepo.findByNombreAndCondominioId(amenidadNombre, condominioId);
             if (amenidad == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Amenidad no encontrada: " + amenidadNombre);
